@@ -3,12 +3,13 @@ services:
     build:
       context: .
       target: base
+    userns_mode: keep-id  # Подружит ID юзеров (Podman)
     ports:
       - "3001:3001"
     volumes:
-      - ./packages/server/src:/app/packages/server/src
-      - ./packages/shared/src:/app/packages/shared/src
-      - ./tsconfig.base.json:/app/tsconfig.base.json
+      - ./packages/server/src:/app/packages/server/src:z  # :z пускает через SELinux
+      - ./packages/shared/src:/app/packages/shared/src:z
+      - ./tsconfig.base.json:/app/tsconfig.base.json:z
     environment:
       NODE_ENV: development
       PORT: "3001"
@@ -18,12 +19,13 @@ services:
     build:
       context: .
       target: base
+    userns_mode: keep-id  # Подружит ID юзеров (Podman)
     ports:
       - "5173:5173"
     volumes:
-      - ./packages/client:/app/packages/client
-      - ./packages/shared:/app/packages/shared
-      - ./tsconfig.base.json:/app/tsconfig.base.json
+      - ./packages/client:/app/packages/client:z          # :z пускает через SELinux
+      - ./packages/shared:/app/packages/shared:z
+      - ./tsconfig.base.json:/app/tsconfig.base.json:z
     environment:
       NODE_ENV: development
     command: npm run dev -w @tgperekup/client
