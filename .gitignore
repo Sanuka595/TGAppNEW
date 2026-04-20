@@ -42,3 +42,5 @@ docker-compose.override.yml
 # Temporary files
 .tmp/
 /packages/client/stats.html
+
+.gemini/
