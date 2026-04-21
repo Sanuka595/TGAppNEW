@@ -1,24 +1,28 @@
 import { create } from 'zustand';
 import { persist, createJSONStorage } from 'zustand/middleware';
 import type { Player } from '@tgperekup/shared';
-import { tmaStorage } from './storage.js';
-import { socket } from '../lib/socket.js';
+import { tmaStorage } from './storage';
+import { socket } from '../lib/socket';
 import {
   initialPlayerState,
   type PlayerSlice,
-} from './slices/playerSlice.js';
+} from './slices/playerSlice';
 import {
   initialSoloState,
   type SoloSlice,
-} from './slices/soloSlice.js';
+} from './slices/soloSlice';
 import {
   initialMultiplayerState,
   type MultiplayerSlice,
-} from './slices/multiplayerSlice.js';
+} from './slices/multiplayerSlice';
+import {
+  initialUIState,
+  type UISlice,
+} from './slices/uiSlice';
 
 // ─── Store interface ──────────────────────────────────────────────────────────
 
-export interface GameStore extends PlayerSlice, SoloSlice, MultiplayerSlice {
+export interface GameStore extends PlayerSlice, SoloSlice, MultiplayerSlice, UISlice {
   player: Player;
 }
 
@@ -57,6 +61,7 @@ export const useGameStore = create<GameStore>()(
       ...initialPlayerState,
       ...initialSoloState,
       ...initialMultiplayerState,
+      ...initialUIState,
 
       // ── Player actions ──
       buyCar: (_carId) => { /* TODO: Phase 3 */ },
@@ -72,7 +77,25 @@ export const useGameStore = create<GameStore>()(
       addLog: (text, type) => set((s) => ({
         logs: [type !== undefined ? { text, type } : { text }, ...s.logs].slice(0, 50),
       })),
-      rollDice: () => { /* TODO: Phase 3 */ },
+      rollDice: () => {
+        const { roomId, player, players, currentTurnIndex, hasRolledThisTurn } = get();
+        if (!roomId) return;
+        
+        // Check if it's player's turn
+        const currentPlayer = players[currentTurnIndex];
+        if (currentPlayer?.id !== player.id) {
+          get().addLog('Сейчас не ваш ход!', 'error');
+          return;
+        }
+        
+        if (hasRolledThisTurn) {
+          get().addLog('Вы уже бросили кубик!', 'error');
+          return;
+        }
+
+        socket.emit('dice_roll', { roomId, playerId: player.id });
+      },
+      setActiveTab: (tab: any) => set({ activeTab: tab }),
       setBoardAnimationStatus: (status) => set({ boardAnimationStatus: status }),
       setIsGarageOpen: (open) => set({ isGarageOpen: open }),
       setIsRulesOpen: (open) => set({ isRulesOpen: open }),
