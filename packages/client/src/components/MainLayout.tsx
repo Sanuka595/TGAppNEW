@@ -1,13 +1,20 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { TopBar } from './TopBar.js';
 import { BottomNavigation } from './BottomNavigation.js';
+import { useGameStore } from '../store/gameStore';
 
 interface Props {
   children: React.ReactNode;
 }
 
 export const MainLayout: React.FC<Props> = ({ children }) => {
-  const [activeTab, setActiveTab] = useState<'garage' | 'market' | 'multiplayer'>('multiplayer');
+  const { activeTab, setActiveTab } = useGameStore();
+  const [localActiveTab, setLocalActiveTab] = useState(activeTab);
+
+  // Sync local state with store
+  useEffect(() => {
+    setLocalActiveTab(activeTab);
+  }, [activeTab]);
 
   return (
     <div className="flex flex-col h-screen overflow-hidden bg-tg-bg text-tg-text">
@@ -19,7 +26,7 @@ export const MainLayout: React.FC<Props> = ({ children }) => {
           {/* Placeholder based on tab */}
           <div className="mt-8 flex flex-col items-center justify-center opacity-50">
             <h2 className="text-xl font-bold uppercase tracking-tighter">
-              Раздел: {activeTab}
+              Раздел: {localActiveTab}
             </h2>
             <p className="text-xs mt-2">Здесь скоро будет контент...</p>
           </div>
@@ -27,8 +34,11 @@ export const MainLayout: React.FC<Props> = ({ children }) => {
       </main>
       
       <BottomNavigation 
-        activeTab={activeTab} 
-        onTabChange={(tab) => setActiveTab(tab)} 
+        activeTab={localActiveTab} 
+        onTabChange={(tab) => {
+          setActiveTab(tab);
+          setLocalActiveTab(tab);
+        }} 
       />
     </div>
   );

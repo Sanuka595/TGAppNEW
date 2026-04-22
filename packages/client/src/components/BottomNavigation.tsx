@@ -1,6 +1,6 @@
 import React from 'react';
 
-type NavItem = 'garage' | 'market' | 'multiplayer';
+type NavItem = 'garage' | 'market' | 'board';
 
 interface Props {
   activeTab: NavItem;
@@ -11,7 +11,7 @@ export const BottomNavigation: React.FC<Props> = ({ activeTab, onTabChange }) =>
   const navItems: { id: NavItem; label: string; icon: string }[] = [
     { id: 'garage', label: 'Гараж', icon: '🚗' },
     { id: 'market', label: 'Рынок', icon: '🏪' },
-    { id: 'multiplayer', label: 'Игра', icon: '🎲' },
+    { id: 'board', label: 'Игра', icon: '🎲' },
   ];
 
   return (

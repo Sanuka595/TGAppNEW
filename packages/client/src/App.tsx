@@ -5,23 +5,68 @@ import { RadialBoard } from './components/game/RadialBoard';
 import { GarageView } from './components/game/GarageView';
 import { MarketView } from './components/game/MarketView';
 import { useGameStore, initSocketListeners } from './store/gameStore';
+import { 
+  isTelegramWebAppAvailable, 
+  getStartParam, 
+  safeWebAppReady, 
+  safeWebAppExpand, 
+  safeSetHeaderColor, 
+  safeSetBackgroundColor,
+  setupBackButton,
+  triggerHapticFeedback,
+  isDevMode 
+} from './lib/tmaProvider';
 
 export default function App(): JSX.Element {
   const activeTab = useGameStore(s => s.activeTab);
   const logs = useGameStore(s => s.logs);
+  const isGarageOpen = useGameStore(s => s.isGarageOpen);
+  const boardAnimationStatus = useGameStore(s => s.boardAnimationStatus);
 
   useEffect(() => {
     // Initialize Telegram Web App
-    WebApp.ready();
-    WebApp.expand();
+    safeWebAppReady();
+    safeWebAppExpand();
     
     // Configure colors based on Telegram theme
-    WebApp.setHeaderColor('secondary_bg_color');
-    WebApp.setBackgroundColor('bg_color');
+    safeSetHeaderColor('secondary_bg_color');
+    safeSetBackgroundColor('bg_color');
 
     // Initialize socket listeners
     initSocketListeners();
+
+    // Handle BackButton
+    setupBackButton(() => {
+      if (isGarageOpen) {
+        useGameStore.getState().closeGarage();
+      } else {
+        // Navigate to home (board)
+        useGameStore.getState().setActiveTab('board');
+      }
+    });
+
+    // Handle deep links
+    const startParam = getStartParam();
+    if (startParam) {
+      handleStartParam(startParam);
+    }
   }, []);
+
+  const handleStartParam = (param: string) => {
+    if (param === 'solo') {
+      // Start solo mode
+      useGameStore.getState().startSoloMode();
+      triggerHapticFeedback('medium');
+    } else if (param === 'multi') {
+      // Open create room modal
+      useGameStore.getState().setIsRulesOpen(true);
+      triggerHapticFeedback('medium');
+    } else {
+      // Join room
+      useGameStore.getState().joinRoom(param);
+      triggerHapticFeedback('medium');
+    }
+  };
 
   const renderContent = () => {
     switch (activeTab) {
