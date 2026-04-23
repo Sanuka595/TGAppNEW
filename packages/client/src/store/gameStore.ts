@@ -1,7 +1,6 @@
 import { create } from 'zustand';
 import { persist, createJSONStorage } from 'zustand/middleware';
 import type { Player } from '@tgperekup/shared';
-import type { TabId } from './slices/uiSlice';
 import { tmaStorage } from './storage';
 import { socket } from '../lib/socket';
 import {
@@ -16,14 +15,10 @@ import {
   initialMultiplayerState,
   type MultiplayerSlice,
 } from './slices/multiplayerSlice';
-import {
-  initialUIState,
-  type UISlice,
-} from './slices/uiSlice';
 
 // ─── Store interface ──────────────────────────────────────────────────────────
 
-export interface GameStore extends PlayerSlice, SoloSlice, MultiplayerSlice, UISlice {
+export interface GameStore extends PlayerSlice, SoloSlice, MultiplayerSlice {
   player: Player;
 }
 
@@ -62,7 +57,6 @@ export const useGameStore = create<GameStore>()(
       ...initialPlayerState,
       ...initialSoloState,
       ...initialMultiplayerState,
-      ...initialUIState,
 
       // ── Player actions ──
       buyCar: (_carId) => { /* TODO: Phase 3 */ },
@@ -96,21 +90,6 @@ export const useGameStore = create<GameStore>()(
 
         socket.emit('dice_roll', { roomId, playerId: player.id });
       },
-      // UI actions — делегируются uiSlice
-      setIsRulesOpen: (open) => set({ isRulesOpen: open }),
-      setIsContractsOpen: (open) => set({ isContractsOpen: open }),
-      setHighlightedCellId: (id) => set({ highlightedCellId: id }),
-      // UI actions из uiSlice
-      setActiveTab: (tab: TabId) => set({ activeTab: tab }),
-      setBoardAnimationStatus: (status: 'idle' | 'running') => set({ boardAnimationStatus: status }),
-      setIsGarageOpen: (open: boolean) => set({ isGarageOpen: open }),
-      toggleGarage: () => set((s) => ({ isGarageOpen: !s.isGarageOpen })),
-      openGarage: () => set({ isGarageOpen: true }),
-      closeGarage: () => set({ isGarageOpen: false }),
-      // UI actions из uiSlice
-      setAnimationStatus: (status: 'idle' | 'running') => set({ boardAnimationStatus: status }),
-      setGarageOpen: (open: boolean) => set({ isGarageOpen: open }),
-
       // ── Solo actions ──
       startSoloMode: () => { /* TODO: Phase 3 */ },
       processBotTurn: () => { /* TODO: Phase 3 */ },

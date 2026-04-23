@@ -1,30 +1,17 @@
 import React from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { 
-  ShoppingCart as ShoppingCartIcon, 
-  Wrench as WrenchIcon, 
-  Zap as ZapIcon, 
-  Trophy as TrophyIcon, 
-  Car as CarIcon, 
-  DollarSign as DollarSignIcon, 
-  AlertTriangle as AlertTriangleIcon,
-  History as HistoryIcon,
-  Star as StarIcon,
-  Hammer as HammerIcon,
-  Truck as TruckIcon
+  Wrench,
+  Zap,
+  Trophy,
+  Car,
+  DollarSign,
+  AlertTriangle,
+  History,
+  Star,
+  Hammer,
+  Truck,
 } from 'lucide-react';
-
-const ShoppingCart = ShoppingCartIcon as any;
-const Wrench = WrenchIcon as any;
-const Zap = ZapIcon as any;
-const Trophy = TrophyIcon as any;
-const Car = CarIcon as any;
-const DollarSign = DollarSignIcon as any;
-const AlertTriangle = AlertTriangleIcon as any;
-const History = HistoryIcon as any;
-const Star = StarIcon as any;
-const Hammer = HammerIcon as any;
-const Truck = TruckIcon as any;
 import { GAME_MAP, type CellType } from '@tgperekup/shared';
 import { useGameStore } from '../../store/gameStore';
 import { DiceArea } from './DiceArea';

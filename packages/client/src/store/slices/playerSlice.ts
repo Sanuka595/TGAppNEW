@@ -9,19 +9,12 @@ export interface PlayerState {
   currentEvent: BoardCell | null;
   lastDiceRoll: number | null;
   lastTaxDeduction: number | null;
-  boardAnimationStatus: 'idle' | 'running';
   hasRolledThisTurn: boolean;
 
   // ── Log ──
   logs: LogEntry[];
 
   // ── UI flags ──
-  isGarageOpen: boolean;
-  isRulesOpen: boolean;
-  isContractsOpen: boolean;
-  highlightedCellId: number | null;
-
-  // ── Global event ──
   activeEvent: GameNews | null;
   totalTurns: number;
 }
@@ -51,11 +44,6 @@ export interface PlayerActions {
   addLog: (text: string, type?: LogEntry['type']) => void;
   /** Roll D6 and move the player. */
   rollDice: () => void;
-  setBoardAnimationStatus: (status: 'idle' | 'running') => void;
-  setIsGarageOpen: (open: boolean) => void;
-  setIsRulesOpen: (open: boolean) => void;
-  setIsContractsOpen: (open: boolean) => void;
-  setHighlightedCellId: (id: number | null) => void;
 }
 
 export type PlayerSlice = PlayerState & PlayerActions;
@@ -66,13 +54,8 @@ export const initialPlayerState: PlayerState = {
   currentEvent: null,
   lastDiceRoll: null,
   lastTaxDeduction: null,
-  boardAnimationStatus: 'idle',
   hasRolledThisTurn: false,
   logs: [],
-  isGarageOpen: false,
-  isRulesOpen: false,
-  isContractsOpen: false,
-  highlightedCellId: null,
   activeEvent: null,
   totalTurns: 0,
 };

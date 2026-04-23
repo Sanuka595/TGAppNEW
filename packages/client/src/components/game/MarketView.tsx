@@ -1,10 +1,6 @@
 import React from 'react';
 import { motion } from 'framer-motion';
-import { ShoppingBag as ShoppingBagIcon, Search as SearchIcon, ShieldAlert as ShieldAlertIcon, Tag as TagIcon } from 'lucide-react';
-const ShoppingBag = ShoppingBagIcon as any;
-const Search = SearchIcon as any;
-const ShieldAlert = ShieldAlertIcon as any;
-const Tag = TagIcon as any;
+import { ShoppingBag, Search, ShieldAlert, Tag } from 'lucide-react';
 import { useGameStore } from '../../store/gameStore';
 import { type CarTier } from '@tgperekup/shared';
 

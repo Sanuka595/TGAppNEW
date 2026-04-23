@@ -1,6 +1,7 @@
 import React from 'react';
+import type { ActiveTab } from '../store/uiStore';
 
-type NavItem = 'garage' | 'market' | 'board';
+type NavItem = ActiveTab;
 
 interface Props {
   activeTab: NavItem;

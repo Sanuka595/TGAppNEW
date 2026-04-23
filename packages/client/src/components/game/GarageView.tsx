@@ -1,10 +1,6 @@
 import React from 'react';
 import { motion } from 'framer-motion';
-import { Car as CarIconComponent, Gauge as GaugeIconComponent, ShieldCheck as ShieldCheckIconComponent, Banknote as BanknoteIconComponent } from 'lucide-react';
-const CarIcon = CarIconComponent as any;
-const Gauge = GaugeIconComponent as any;
-const ShieldCheck = ShieldCheckIconComponent as any;
-const Banknote = BanknoteIconComponent as any;
+import { Car as CarIcon, ShieldCheck, Banknote } from 'lucide-react';
 import { useGameStore } from '../../store/gameStore';
 import { type CarTier } from '@tgperekup/shared';
 

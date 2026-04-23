@@ -1,9 +1,6 @@
 import React from 'react';
 import { useGameStore } from '../store/gameStore';
-import { Wallet as WalletIcon, Zap as ZapIcon, User as UserIcon } from 'lucide-react';
-const Wallet = WalletIcon as any;
-const Zap = ZapIcon as any;
-const User = UserIcon as any;
+import { Wallet, Zap, User } from 'lucide-react';
 import Decimal from 'decimal.js';
 
 export const TopBar: React.FC = () => {

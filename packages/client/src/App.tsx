@@ -1,12 +1,11 @@
-import { useEffect } from 'react';
-import WebApp from '@twa-dev/sdk';
+import { useCallback, useEffect } from 'react';
 import { MainLayout } from './components/MainLayout';
 import { RadialBoard } from './components/game/RadialBoard';
 import { GarageView } from './components/game/GarageView';
 import { MarketView } from './components/game/MarketView';
 import { useGameStore, initSocketListeners } from './store/gameStore';
+import { useUiStore } from './store/uiStore';
 import { 
-  isTelegramWebAppAvailable, 
   getStartParam, 
   safeWebAppReady, 
   safeWebAppExpand, 
@@ -14,59 +13,55 @@ import {
   safeSetBackgroundColor,
   setupBackButton,
   triggerHapticFeedback,
-  isDevMode 
 } from './lib/tmaProvider';
 
 export default function App(): JSX.Element {
-  const activeTab = useGameStore(s => s.activeTab);
+  const activeTab = useUiStore((s) => s.activeTab);
   const logs = useGameStore(s => s.logs);
-  const isGarageOpen = useGameStore(s => s.isGarageOpen);
-  const boardAnimationStatus = useGameStore(s => s.boardAnimationStatus);
+
+  const handleStartParam = useCallback((param: string) => {
+    if (param === 'solo') {
+      useGameStore.getState().startSoloMode();
+      triggerHapticFeedback('medium');
+      return;
+    }
+
+    if (param === 'multi') {
+      useUiStore.getState().setIsCreateRoomModalOpen(true);
+      triggerHapticFeedback('medium');
+      return;
+    }
+
+    useGameStore.getState().joinRoom(param);
+    triggerHapticFeedback('medium');
+  }, []);
+
+  const handleBackButton = useCallback(() => {
+    const handled = useUiStore.getState().closeTopUiLayer();
+    if (handled) {
+      triggerHapticFeedback('light');
+    }
+  }, []);
 
   useEffect(() => {
-    // Initialize Telegram Web App
     safeWebAppReady();
     safeWebAppExpand();
-    
-    // Configure colors based on Telegram theme
     safeSetHeaderColor('secondary_bg_color');
     safeSetBackgroundColor('bg_color');
 
-    // Initialize socket listeners
     initSocketListeners();
-
-    // Handle BackButton
-    setupBackButton(() => {
-      if (isGarageOpen) {
-        useGameStore.getState().closeGarage();
-      } else {
-        // Navigate to home (board)
-        useGameStore.getState().setActiveTab('board');
-      }
-    });
+    const cleanupBackButton = setupBackButton(handleBackButton);
 
     // Handle deep links
     const startParam = getStartParam();
     if (startParam) {
       handleStartParam(startParam);
     }
-  }, []);
 
-  const handleStartParam = (param: string) => {
-    if (param === 'solo') {
-      // Start solo mode
-      useGameStore.getState().startSoloMode();
-      triggerHapticFeedback('medium');
-    } else if (param === 'multi') {
-      // Open create room modal
-      useGameStore.getState().setIsRulesOpen(true);
-      triggerHapticFeedback('medium');
-    } else {
-      // Join room
-      useGameStore.getState().joinRoom(param);
-      triggerHapticFeedback('medium');
-    }
-  };
+    return () => {
+      cleanupBackButton?.();
+    };
+  }, [handleBackButton, handleStartParam]);
 
   const renderContent = () => {
     switch (activeTab) {

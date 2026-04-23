@@ -1,6 +1,3 @@
-import { useEffect } from 'react';
-import WebApp from '@twa-dev/sdk';
-
 declare global {
   interface Window {
     Telegram?: {
@@ -23,7 +20,9 @@ declare global {
         setBackgroundColor: (color: string) => void;
         BackButton?: {
           onClick: (cb: () => void) => void;
-          offClick: () => void;
+          offClick: (cb: () => void) => void;
+          show?: () => void;
+          hide?: () => void;
         };
         HapticFeedback?: {
           impactOccurred: (style: 'light' | 'medium' | 'heavy') => void;
@@ -35,12 +34,18 @@ declare global {
   }
 }
 
+type TelegramWebApp = NonNullable<Window['Telegram']>['WebApp'];
+
+function getTelegramWebApp(): TelegramWebApp | undefined {
+  if (typeof window === 'undefined') {
+    return undefined;
+  }
+  return window.Telegram?.WebApp;
+}
+
 // Проверка наличия TMA SDK
 export function isTelegramWebAppAvailable(): boolean {
-  return typeof window !== 'undefined' && 
-         (window.Telegram as any) !== undefined && 
-         (window.Telegram as any).WebApp !== undefined &&
-         (window.Telegram as any).WebApp.initDataUnsafe !== undefined;
+  return Boolean(getTelegramWebApp()?.initDataUnsafe);
 }
 
 // Получение данных пользователя из TMA
@@ -51,14 +56,14 @@ export function getTelegramUser(): {
   username?: string;
   language_code?: string;
 } | null {
-  if (!isTelegramWebAppAvailable()) return null;
-  return (window.Telegram as any).WebApp.initDataUnsafe?.user || null;
+  return getTelegramWebApp()?.initDataUnsafe?.user ?? null;
 }
 
 // Получение start_param из TMA или URL
 export function getStartParam(): string | null {
-  if (isTelegramWebAppAvailable()) {
-    return (window.Telegram as any).WebApp.initDataUnsafe?.start_param || null;
+  const webApp = getTelegramWebApp();
+  if (webApp?.initDataUnsafe) {
+    return webApp.initDataUnsafe.start_param ?? null;
   }
   
   // Fallback для URLSearchParams
@@ -72,65 +77,70 @@ export function getStartParam(): string | null {
 
 // Haptic Feedback utility
 export function triggerHapticFeedback(type: 'light' | 'medium' | 'heavy' | 'selection' | 'error'): void {
-  if (isTelegramWebAppAvailable()) {
-    try {
-      // Используем нативный HapticFeedback API через window.Telegram.WebApp
-      const haptic = (window.Telegram as any).WebApp.HapticFeedback;
-      switch (type) {
-        case 'light':
-          haptic?.impactOccurred('light');
-          break;
-        case 'medium':
-          haptic?.impactOccurred('medium');
-          break;
-        case 'heavy':
-          haptic?.impactOccurred('heavy');
-          break;
-        case 'selection':
-          haptic?.selectionChanged();
-          break;
-        case 'error':
-          haptic?.notificationOccurred('error');
-          break;
-      }
-    } catch {
-      // HapticFeedback может быть недоступен в некоторых версиях
+  const haptic = getTelegramWebApp()?.HapticFeedback;
+  if (!haptic) {
+    return;
+  }
+
+  try {
+    switch (type) {
+      case 'light':
+        haptic.impactOccurred('light');
+        break;
+      case 'medium':
+        haptic.impactOccurred('medium');
+        break;
+      case 'heavy':
+        haptic.impactOccurred('heavy');
+        break;
+      case 'selection':
+        haptic.selectionChanged();
+        break;
+      case 'error':
+        haptic.notificationOccurred('error');
+        break;
     }
+  } catch {
+    // HapticFeedback может быть недоступен в некоторых версиях
   }
 }
 
 // Safe wrapper для WebApp методов
 export function safeWebAppReady(): void {
-  if (!isTelegramWebAppAvailable()) return;
+  const webApp = getTelegramWebApp();
+  if (!webApp) return;
   try {
-    WebApp.ready();
+    webApp.ready();
   } catch (e) {
     console.warn('WebApp.ready() failed:', e);
   }
 }
 
 export function safeWebAppExpand(): void {
-  if (!isTelegramWebAppAvailable()) return;
+  const webApp = getTelegramWebApp();
+  if (!webApp) return;
   try {
-    WebApp.expand();
+    webApp.expand();
   } catch (e) {
     console.warn('WebApp.expand() failed:', e);
   }
 }
 
 export function safeSetHeaderColor(color: 'bg_color' | 'secondary_bg_color' | `#${string}`): void {
-  if (!isTelegramWebAppAvailable()) return;
+  const webApp = getTelegramWebApp();
+  if (!webApp) return;
   try {
-    WebApp.setHeaderColor(color);
+    webApp.setHeaderColor(color);
   } catch (e) {
     console.warn('WebApp.setHeaderColor() failed:', e);
   }
 }
 
 export function safeSetBackgroundColor(color: 'bg_color' | 'secondary_bg_color' | `#${string}`): void {
-  if (!isTelegramWebAppAvailable()) return;
+  const webApp = getTelegramWebApp();
+  if (!webApp) return;
   try {
-    WebApp.setBackgroundColor(color);
+    webApp.setBackgroundColor(color);
   } catch (e) {
     console.warn('WebApp.setBackgroundColor() failed:', e);
   }
@@ -138,16 +148,14 @@ export function safeSetBackgroundColor(color: 'bg_color' | 'secondary_bg_color' 
 
 // BackButton handler
 export function setupBackButton(onClick: () => void): (() => void) | undefined {
-  if (!isTelegramWebAppAvailable()) return;
+  const backButton = getTelegramWebApp()?.BackButton;
+  if (!backButton) return;
   
   try {
-    const backButtonHandler = () => {
-      onClick(); // Execute the provided callback
-      triggerHapticFeedback('light');
-    };
-    WebApp.BackButton?.onClick(backButtonHandler);
+    backButton.show?.();
+    backButton.onClick(onClick);
     return () => {
-      WebApp.BackButton?.offClick(backButtonHandler); // Cleanup: remove the specific handler
+      backButton.offClick(onClick);
     };
   } catch {
     // BackButton может быть недоступен
@@ -156,5 +164,5 @@ export function setupBackButton(onClick: () => void): (() => void) | undefined {
 
 // Dev mode fallback
 export function isDevMode(): boolean {
-  return !(isTelegramWebAppAvailable as any)();
+  return !isTelegramWebAppAvailable();
 }
