@@ -30,8 +30,8 @@ export const MultiplayerModal: React.FC = () => {
 
   const handleCopyLink = () => {
     if (!roomId) return;
-    // URL твоего приложения в Telegram
-    const botLink = `https://t.me/perekup_game1_bot/play?startapp=${roomId}`;
+    // Bot Username: @perekup_Buh_bot
+    const botLink = `https://t.me/perekup_Buh_bot/play?startapp=${roomId}`;
     navigator.clipboard.writeText(botLink);
     // В идеале тут нужен тост, но пока добавим лог
     useGameStore.getState().addLog('Ссылка скопирована!', 'success');
