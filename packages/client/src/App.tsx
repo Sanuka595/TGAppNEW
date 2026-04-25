@@ -4,6 +4,7 @@ import { RadialBoard } from './components/game/RadialBoard';
 import { GarageView } from './components/game/GarageView';
 import { MarketView } from './components/game/MarketView';
 import { ActionModal } from './components/game/ActionModal';
+import { MultiplayerModal } from './components/game/MultiplayerModal';
 import { useGameStore, initSocketListeners } from './store/gameStore';
 import { useUiStore } from './store/uiStore';
 import { 
@@ -29,6 +30,12 @@ export default function App(): JSX.Element {
 
     if (param === 'multi') {
       useUiStore.getState().setIsCreateRoomModalOpen(true);
+      triggerHapticFeedback('medium');
+      return;
+    }
+
+    if (param === 'reset') {
+      useGameStore.getState().resetAccount();
       triggerHapticFeedback('medium');
       return;
     }
@@ -100,6 +107,7 @@ export default function App(): JSX.Element {
     <MainLayout>
       {renderContent()}
       <ActionModal />
+      <MultiplayerModal />
     </MainLayout>
   );
 }

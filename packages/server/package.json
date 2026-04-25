@@ -12,11 +12,13 @@
   "dependencies": {
     "@tgperekup/shared": "*",
     "express": "^4.21.2",
+    "node-telegram-bot-api": "0.67.0",
     "socket.io": "^4.8.1"
   },
   "devDependencies": {
     "@types/express": "^5.0.0",
     "@types/node": "^22.0.0",
+    "@types/node-telegram-bot-api": "0.64.14",
     "tsx": "^4.19.0",
     "typescript": "^5.7.0"
   }

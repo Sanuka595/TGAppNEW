@@ -6,6 +6,7 @@ import path from 'path';
 import fs from 'fs';
 import type { ClientToServerEvents, ServerToClientEvents } from '@tgperekup/shared';
 import { registerSocketHandlers } from './socketHandlers.js';
+import TelegramBot from 'node-telegram-bot-api';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -64,3 +65,37 @@ const PORT = parseInt(process.env['PORT'] ?? '3000', 10);
 httpServer.listen(PORT, '0.0.0.0', () => {
   console.log(`Server running on port ${PORT}`);
 });
+
+// ─── Telegram Bot ───────────────────────────────────────────────────────────
+const BOT_TOKEN = process.env['TELEGRAM_BOT_TOKEN'];
+
+if (BOT_TOKEN) {
+  const bot = new TelegramBot(BOT_TOKEN, { polling: true });
+  
+  // Get bot info to construct links
+  let botUsername = 'perekup_d6_bot';
+  bot.getMe().then((me) => {
+    botUsername = me.username || botUsername;
+    console.log(`Bot @${botUsername} is running`);
+  });
+
+  bot.onText(/\/start/, (msg) => {
+    const chatId = msg.chat.id;
+    const webAppUrl = `https://t.me/${botUsername}/app`;
+
+    bot.sendMessage(chatId, '🚗 **Добро пожаловать в Перекуп D6!**\n\nВыбери режим игры:', {
+      parse_mode: 'Markdown',
+      reply_markup: {
+        inline_keyboard: [
+          [{ text: '🎯 Соло режим', url: `${webAppUrl}?startapp=solo` }],
+          [{ text: '👥 Мультиплеер', url: `${webAppUrl}?startapp=multi` }],
+          [{ text: '🧹 Сбросить прогресс', url: `${webAppUrl}?startapp=reset` }]
+        ]
+      }
+    });
+  });
+
+  console.log('Telegram Bot initialized');
+} else {
+  console.warn('TELEGRAM_BOT_TOKEN not found, bot features disabled');
+}
