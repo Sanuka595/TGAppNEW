@@ -81,15 +81,17 @@ if (BOT_TOKEN) {
 
   bot.onText(/\/start/, (msg) => {
     const chatId = msg.chat.id;
-    const webAppUrl = `https://t.me/${botUsername}/app`;
+    
+    // Пытаемся взять URL из переменных окружения, иначе используем тот, что дал пользователь
+    const webAppUrl = process.env['WEBAPP_URL'] || 'https://tgperekupserver-production-38c8.up.railway.app/';
 
     bot.sendMessage(chatId, '🚗 **Добро пожаловать в Перекуп D6!**\n\nВыбери режим игры:', {
       parse_mode: 'Markdown',
       reply_markup: {
         inline_keyboard: [
-          [{ text: '🎯 Соло режим', url: `${webAppUrl}?startapp=solo` }],
-          [{ text: '👥 Мультиплеер', url: `${webAppUrl}?startapp=multi` }],
-          [{ text: '🧹 Сбросить прогресс', url: `${webAppUrl}?startapp=reset` }]
+          [{ text: '🎯 Соло режим', web_app: { url: `${webAppUrl}?startapp=solo` } }],
+          [{ text: '👥 Мультиплеер', web_app: { url: `${webAppUrl}?startapp=multi` } }],
+          [{ text: '🧹 Сбросить прогресс', web_app: { url: `${webAppUrl}?startapp=reset` } }]
         ]
       }
     });
