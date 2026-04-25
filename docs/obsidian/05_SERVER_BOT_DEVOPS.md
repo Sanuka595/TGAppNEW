@@ -13,18 +13,26 @@ import { createServer } from 'http';
 import { Server } from 'socket.io';
 import cors from 'cors';
 import path from 'path';
+import TelegramBot from 'node-telegram-bot-api';
 import type { ClientToServerEvents, ServerToClientEvents } from '../src/shared/types';
 import { registerSocketHandlers } from './socketHandlers';
 
 const app = express();
 
-// CORS — только разрешённые домены
-const allowedOrigins = process.env.ALLOWED_ORIGINS?.split(',') ?? [
-  'http://localhost:5173',
-  'http://127.0.0.1:5173',
-];
-
-app.use(cors({ origin: allowedOrigins, methods: ['GET', 'POST'] }));
+// CORS — разрешаем все для TMA (т.к. разные клиенты шлют разные Origin)
+app.use((req, res, next) => {
+  const origin = req.headers['origin'];
+  if (typeof origin === 'string') {
+    res.setHeader('Access-Control-Allow-Origin', origin);
+  } else {
+    res.setHeader('Access-Control-Allow-Origin', '*');
+  }
+  res.setHeader('Access-Control-Allow-Methods', 'GET, POST, OPTIONS');
+  res.setHeader('Access-Control-Allow-Headers', 'Content-Type, Authorization');
+  res.setHeader('Access-Control-Allow-Credentials', 'true');
+  if (req.method === 'OPTIONS') return res.sendStatus(204);
+  next();
+});
 
 // Раздача SPA (production)
 if (process.env.NODE_ENV === 'production') {
@@ -34,18 +42,37 @@ if (process.env.NODE_ENV === 'production') {
   });
 }
 
-// Healthcheck для Fly.io
+// Healthcheck для Railway
 app.get('/health', (_req, res) => res.status(200).send('OK'));
 
 const httpServer = createServer(app);
 
 const io = new Server<ClientToServerEvents, ServerToClientEvents>(httpServer, {
-  cors: { origin: allowedOrigins, methods: ['GET', 'POST'] },
+  cors: { origin: true, methods: ['GET', 'POST'], credentials: true },
 });
 
 io.on('connection', (socket) => {
   registerSocketHandlers(io, socket);
 });
+
+// Интеграция Telegram Bot API в тот же процесс (экономия ресурсов)
+const BOT_TOKEN = process.env['TELEGRAM_BOT_TOKEN'];
+if (BOT_TOKEN) {
+  const bot = new TelegramBot(BOT_TOKEN, { polling: true });
+  const webAppUrl = process.env['WEBAPP_URL'] || 'https://your-app.up.railway.app/';
+
+  bot.onText(/\/start/, (msg) => {
+    bot.sendMessage(msg.chat.id, '🚗 **Добро пожаловать в Перекуп D6!**', {
+      parse_mode: 'Markdown',
+      reply_markup: {
+        inline_keyboard: [
+          [{ text: '🎯 Соло режим', web_app: { url: `${webAppUrl}?startapp=solo` } }],
+          [{ text: '👥 Мультиплеер', web_app: { url: `${webAppUrl}?startapp=multi` } }]
+        ]
+      }
+    });
+  });
+}
 
 const PORT = process.env.PORT || 3000;
 httpServer.listen(PORT, '0.0.0.0', () => {
@@ -271,95 +298,11 @@ export const registerSocketHandlers = (
 
 ---
 
-## 2. Telegram Bot (bot.js)
+## 2. Telegram Bot (Интегрирован в сервер)
 
-```javascript
-import { Telegraf } from 'telegraf';
-import dotenv from 'dotenv';
+**Внимание**: Ранее бот был вынесен в отдельный процесс `bot.js` с `telegraf`. В текущей архитектуре бот встроен прямо в `server/index.ts` с помощью `node-telegram-bot-api` в режиме polling. Это позволяет задеплоить всё приложение на Railway в рамках 1 сервиса.
 
-dotenv.config();
-
-const BOT_TOKEN = process.env.BOT_TOKEN;
-const APP_URL = process.env.APP_URL; // Например: https://your-app.fly.dev
-const SHORT_NAME = process.env.BOT_SHORT_NAME ?? 'play'; // Short name в BotFather
-
-if (!BOT_TOKEN) {
-  console.error('❌ BOT_TOKEN не указан в .env');
-  process.exit(1);
-}
-
-const bot = new Telegraf(BOT_TOKEN);
-
-function escapeHtml(text) {
-  return String(text)
-    .replace(/&/g, '&amp;')
-    .replace(/</g, '&lt;')
-    .replace(/>/g, '&gt;');
-}
-
-bot.start(async (ctx) => {
-  const name = escapeHtml(ctx.from?.first_name ?? 'Перекуп');
-  
-  await ctx.reply(
-    `👋 Привет, <b>${name}</b>! Добро пожаловать в <b>Перекуп D6</b> — настольную стратегию перекупщиков.\n\nВыбери режим игры:`,
-    {
-      parse_mode: 'HTML',
-      reply_markup: {
-        inline_keyboard: [
-          [
-            {
-              text: '🚀 Соло-карьера',
-              web_app: { url: `${APP_URL}?startapp=solo` }
-            },
-            {
-              text: '🤝 Мультиплеер',
-              web_app: { url: `${APP_URL}?startapp=multi` }
-            }
-          ],
-          [
-            {
-              text: '🧹 Сбросить прогресс',
-              callback_data: 'confirm_reset'
-            }
-          ]
-        ]
-      }
-    }
-  );
-});
-
-bot.action('confirm_reset', async (ctx) => {
-  await ctx.answerCbQuery();
-  await ctx.reply(
-    '⚠️ <b>Ты уверен?</b> Весь прогресс (гараж, баланс, достижения) будет удалён навсегда.',
-    {
-      parse_mode: 'HTML',
-      reply_markup: {
-        inline_keyboard: [[
-          { text: '✅ Да, сбросить', callback_data: 'do_reset' },
-          { text: '❌ Отмена', callback_data: 'cancel_reset' }
-        ]]
-      }
-    }
-  );
-});
-
-bot.action('do_reset', async (ctx) => {
-  await ctx.answerCbQuery('Аккаунт сброшен');
-  await ctx.editMessageText('🗑️ Аккаунт зачищен. Начни новую карьеру!');
-  // TODO: При наличии сервера — DELETE /api/users/:telegramId
-});
-
-bot.action('cancel_reset', async (ctx) => {
-  await ctx.answerCbQuery('Отмена');
-  await ctx.deleteMessage();
-});
-
-bot.launch();
-
-process.once('SIGINT', () => bot.stop('SIGINT'));
-process.once('SIGTERM', () => bot.stop('SIGTERM'));
-```
+Используются **web_app** кнопки, которые сразу открывают приложение (используют `WEBAPP_URL` из переменных окружения Railway).
 
 ---
 
@@ -617,15 +560,12 @@ describe('calculateSellPrice — legal_block', () => {
 | # | Проблема | Приоритет | Решение |
 |---|---|---|---|
 | 1 | Конфискация залога — кредитор не получает машину | HIGH | Передавать полный `Car` объект в payload |
-| 2 | `processTurn()` — пустой метод в GameActions | LOW | Удалить из интерфейса и реализации |
-| 3 | In-memory rooms теряются при рестарте | HIGH | Redis с TTL (Phase 3) |
-| 4 | Финансовая логика на клиенте | CRITICAL | Перенос на сервер (Phase 3) |
-| 5 | Нет Telegram HMAC verification | CRITICAL | Phase 3 |
-| 6 | README содержит битую ссылку на скриншот | LOW | Обновить скриншот |
-| 7 | `bot.js` — `.js` в ESM проекте | LOW | Переименовать в `bot.mjs` или `bot.ts` |
-| 8 | Класс `Business` в игре но нет клетки на карте | MEDIUM | Добавить клетку `buy_business` |
-| 9 | Нет Accessibility (aria, tabIndex) | MEDIUM | Phase 3 |
-| 10 | Нет rate limiting | MEDIUM | Phase 2 |
+| 2 | In-memory rooms теряются при рестарте | HIGH | Redis с TTL (Phase 3) |
+| 3 | Финансовая логика на клиенте | CRITICAL | Перенос на сервер (Phase 3) |
+| 4 | Нет Telegram HMAC verification | CRITICAL | Phase 3 |
+| 5 | Класс `Business` в игре но нет клетки на карте | MEDIUM | Добавить клетку `buy_business` |
+| 6 | Нет Accessibility (aria, tabIndex) | MEDIUM | Phase 3 |
+| 7 | Нет rate limiting | MEDIUM | Phase 2 |
 
 ---
 

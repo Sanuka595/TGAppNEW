@@ -15,18 +15,16 @@ const app = express();
 
 const isProduction = process.env['NODE_ENV'] === 'production';
 
-const allowedOrigins: string[] = process.env['ALLOWED_ORIGINS']?.split(',') ?? [
-  'http://localhost:5173',
-  'http://127.0.0.1:5173',
-];
-
 app.use((req: Request, res: Response, next: NextFunction) => {
   const origin = req.headers['origin'];
-  if (typeof origin === 'string' && allowedOrigins.includes(origin)) {
+  if (typeof origin === 'string') {
     res.setHeader('Access-Control-Allow-Origin', origin);
+  } else {
+    res.setHeader('Access-Control-Allow-Origin', '*');
   }
   res.setHeader('Access-Control-Allow-Methods', 'GET, POST, OPTIONS');
-  res.setHeader('Access-Control-Allow-Headers', 'Content-Type');
+  res.setHeader('Access-Control-Allow-Headers', 'Content-Type, Authorization');
+  res.setHeader('Access-Control-Allow-Credentials', 'true');
   if (req.method === 'OPTIONS') {
     res.sendStatus(204);
     return;
@@ -47,7 +45,7 @@ if (isProduction && fs.existsSync(clientDistPath)) {
 const httpServer = createServer(app);
 
 const io = new Server<ClientToServerEvents, ServerToClientEvents>(httpServer, {
-  cors: { origin: allowedOrigins, methods: ['GET', 'POST'] },
+  cors: { origin: true, methods: ['GET', 'POST'], credentials: true },
 });
 
 io.on('connection', (socket) => {
