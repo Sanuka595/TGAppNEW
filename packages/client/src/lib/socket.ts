@@ -2,7 +2,7 @@ import { io } from 'socket.io-client';
 import type { ServerToClientEvents, ClientToServerEvents } from '@tgperekup/shared';
 
 // Singleton — created once, reused across the app.
-export const socket = io({ autoConnect: false });
+export const socket = io({ autoConnect: true });
 
 // Re-export the typed socket for use in store and components.
 export type AppSocket = typeof socket & {
