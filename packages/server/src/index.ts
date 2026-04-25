@@ -59,9 +59,9 @@ if (isProduction && fs.existsSync(clientDistPath)) {
   });
 }
 
-const PORT = parseInt(process.env['PORT'] ?? '3000', 10);
+const PORT = process.env.PORT || 3000;
 httpServer.listen(PORT, '0.0.0.0', () => {
-  console.log(`Server running on port ${PORT}`);
+  console.log(`🚀 Server running on port ${PORT} (v2)`);
 });
 
 // ─── Telegram Bot ───────────────────────────────────────────────────────────
