@@ -1,7 +1,8 @@
 import { create } from 'zustand';
 import { persist, createJSONStorage } from 'zustand/middleware';
+import { Decimal } from 'decimal.js';
 import type { Player, GameNews } from '@tgperekup/shared';
-import { GAME_MAP } from '@tgperekup/shared';
+import { GAME_MAP, calculateCurrentMarketValue, calculateSellPrice } from '@tgperekup/shared';
 import { tmaStorage } from './storage';
 import { socket } from '../lib/socket';
 import {
@@ -61,35 +62,36 @@ export const useGameStore = create<GameStore>()(
 
       // ── Player actions ──
       buyCar: (carId) => {
-        const { player, market, roomId } = get();
+        const { player, market, roomId, activeEvent } = get();
         const car = market.find((c) => c.id === carId);
         if (!car) {
           get().addLog('Машина не найдена на рынке!', 'error');
           return;
         }
 
-        const balance = BigInt(player.balance);
-        const price = BigInt(car.basePrice);
+        const price = calculateCurrentMarketValue(car, activeEvent);
+        const balance = new Decimal(player.balance);
 
-        if (balance < price) {
+        if (balance.lt(price)) {
           get().addLog('Недостаточно денег!', 'error');
           return;
         }
 
-        const newBalance = (balance - price).toString();
+        const newBalance = balance.sub(price).toFixed(0);
+        const carWithBoughtFor = { ...car, boughtFor: price.toFixed(0) };
         const newPlayer = {
           ...player,
           balance: newBalance,
-          garage: [...(player.garage ?? []), car],
+          garage: [...(player.garage ?? []), carWithBoughtFor],
         };
 
         set((state) => ({
           player: newPlayer,
-          garage: [...state.garage, car],
+          garage: [...state.garage, carWithBoughtFor],
           market: state.market.filter((c) => c.id !== carId),
         }));
 
-        get().addLog(`Вы купили ${car.name} за ${car.basePrice}`, 'success');
+        get().addLog(`Вы купили ${car.name} за $${price.toFixed(0)}`, 'success');
 
         if (roomId) {
           socket.emit('sync_action', {
@@ -101,17 +103,25 @@ export const useGameStore = create<GameStore>()(
         }
       },
       sellCar: (carId) => {
-        const { player, roomId } = get();
+        const { player, roomId, activeEvent } = get();
         const car = (player.garage ?? []).find((c) => c.id === carId);
         if (!car) {
           get().addLog('Машина не найдена в гараже!', 'error');
           return;
         }
 
-        const balance = BigInt(player.balance);
-        const price = BigInt(car.basePrice);
-        const newBalance = (balance + price).toString();
+        if (car.isLocked === true) {
+          get().addLog('Автомобиль заложен по долговому договору!', 'error');
+          return;
+        }
 
+        const sellPrice = calculateSellPrice(car, activeEvent);
+        if (sellPrice.isZero()) {
+          get().addLog('Продажа запрещена: у авто юридический запрет регистрационных действий!', 'error');
+          return;
+        }
+
+        const newBalance = new Decimal(player.balance).add(sellPrice).toFixed(0);
         const newPlayer = {
           ...player,
           balance: newBalance,
@@ -123,7 +133,7 @@ export const useGameStore = create<GameStore>()(
           garage: state.garage.filter((c) => c.id !== carId),
         }));
 
-        get().addLog(`Вы продали ${car.name} за ${car.basePrice}`, 'success');
+        get().addLog(`Вы продали ${car.name} за $${sellPrice.toFixed(0)}`, 'success');
 
         if (roomId) {
           socket.emit('sync_action', {

@@ -24,7 +24,7 @@ export const registerSocketHandlers = (
   socket.on('create_room', ({ player, winCondition }, callback) => {
     activePlayerId = player.id;
     const roomId = roomManager.createRoom(socket.id, player, winCondition);
-    console.log(`Room ${roomId} created by player ${player.id}`);
+    console.log(`[ROOM] ${roomId} created by player ${player.id}`);
     socket.join(roomId);
     const room = roomManager.getRoom(roomId);
     if (room !== undefined) io.to(roomId).emit('room_updated', room);
@@ -32,18 +32,23 @@ export const registerSocketHandlers = (
   });
 
   socket.on('join_room', ({ roomId, player }, callback) => {
-    console.log(`[JOIN_ROOM] Player ${player.id} attempting to join room "${roomId}"`);
-    activePlayerId = player.id;
+    // Normalise before room lookup AND before socket.join — both must use the same ID
     const normalizedId = roomId.toUpperCase().trim();
+    console.log(`[JOIN] Player ${player.id} → room "${normalizedId}"`);
+    activePlayerId = player.id;
+
     const result = roomManager.joinRoom(socket.id, normalizedId, player);
     if (!result.success) {
-      console.log(`[JOIN_FAILED] Player ${player.id} in room "${normalizedId}": ${result.error}`);
+      console.log(`[JOIN_FAILED] ${player.id} in "${normalizedId}": ${result.error}`);
       callback({ success: false, error: result.error });
       return;
     }
-    socket.join(roomId);
-    console.log(`Player ${player.id} joined room ${roomId}`);
-    io.to(roomId).emit('room_updated', result.room);
+
+    // FIX: was socket.join(roomId) — used the raw un-normalised ID, causing room_updated
+    // to be broadcast to a different Socket.IO room than the one the client joined.
+    socket.join(normalizedId);
+    console.log(`[JOIN_OK] Player ${player.id} in room ${normalizedId}`);
+    io.to(normalizedId).emit('room_updated', result.room);
     callback({ success: true });
   });
 
@@ -63,15 +68,13 @@ export const registerSocketHandlers = (
       player.position = (player.position + diceValue) % 12;
     }
 
-    // 1. Broadcast result first — race-condition fix (pass_turn only after this)
     io.to(roomId).emit('dice_roll_result', {
       playerId,
       diceValue,
       newPosition: player !== undefined ? player.position : 0,
     });
-    
-    // ВАЖНО: Мы БОЛЬШЕ НЕ передаем ход автоматически! 
-    // Игрок должен нажать кнопку "Завершить ход", чтобы у него было время купить машину.
+
+    // Turn is passed manually via pass_turn (player needs time to buy/sell on the cell)
   });
 
   socket.on('pass_turn', ({ roomId, playerId }) => {
@@ -83,40 +86,47 @@ export const registerSocketHandlers = (
   socket.on('sync_action', (data) => {
     if (BLOCKED_ACTIONS.has(data.action)) return;
 
-    // Forward to other room members; strip roomId from the broadcast payload
+    let updated: ReturnType<typeof roomManager.getRoom> | null = null;
+
+    // Server-authoritative financial transactions — validate FIRST, relay only on success.
+    // This prevents other clients from seeing actions that the server rejects.
+    if (data.action === 'buyCar') {
+      const result = roomManager.processBuyCar(data.roomId, data.playerId, data.payload);
+      if (!result.success) {
+        socket.emit('room_error', transactionErrorMessage(result.error));
+        return;
+      }
+      updated = result.room;
+
+    } else if (data.action === 'sellCar') {
+      const result = roomManager.processSellCar(data.roomId, data.playerId, data.payload);
+      if (!result.success) {
+        socket.emit('room_error', transactionErrorMessage(result.error));
+        return;
+      }
+      updated = result.room;
+
+    } else if (data.action === 'updateMarket') {
+      // Only the current-turn player may push a new market (they just landed on a buy cell)
+      updated = roomManager.updateMarket(data.roomId, data.payload, data.playerId);
+      if (updated === null) {
+        socket.emit('room_error', 'Рынок можно обновить только в свой ход');
+        return;
+      }
+
+    } else if (data.action === 'newsUpdate') {
+      // Market news is triggered by the host (every 10 turns)
+      if (!roomManager.isRoomHost(data.roomId, data.playerId)) {
+        socket.emit('room_error', 'Только хост может публиковать события рынка');
+        return;
+      }
+      // Persist the active event so processBuyCar/processSellCar use correct price multipliers
+      roomManager.updateActiveEvent(data.roomId, data.payload);
+    }
+
+    // Relay to all OTHER players in the room after successful server-side validation
     const syncResult: SyncResultData = buildSyncResult(data);
     socket.to(data.roomId).emit('sync_action_result', syncResult);
-
-    // Server-side state updates for market mutations
-    let updated = null;
-    if (data.action === 'updateMarket') {
-      updated = roomManager.updateMarket(data.roomId, data.payload);
-    } else if (data.action === 'buyCar') {
-      const room = roomManager.getRoom(data.roomId);
-      const car = room?.market.find(c => c.id === data.payload);
-      const player = room?.players.find(p => p.id === data.playerId);
-
-      if (car && player) {
-        const newBalance = (BigInt(player.balance) - BigInt(car.basePrice)).toString();
-        roomManager.updatePlayer(data.roomId, data.playerId, {
-          balance: newBalance,
-          garage: [...(player.garage ?? []), car],
-        });
-      }
-      updated = roomManager.removeCarFromMarket(data.roomId, data.payload);
-    } else if (data.action === 'sellCar') {
-      const room = roomManager.getRoom(data.roomId);
-      const player = room?.players.find(p => p.id === data.playerId);
-      const car = player?.garage?.find(c => c.id === data.payload);
-
-      if (car && player) {
-        const newBalance = (BigInt(player.balance) + BigInt(car.basePrice)).toString();
-        updated = roomManager.updatePlayer(data.roomId, data.playerId, {
-          balance: newBalance,
-          garage: (player.garage ?? []).filter(c => c.id !== data.payload),
-        });
-      }
-    }
 
     if (updated !== null) io.to(data.roomId).emit('room_updated', updated);
   });
@@ -130,16 +140,28 @@ export const registerSocketHandlers = (
   });
 
   socket.on('disconnect', () => {
-    console.log(`[DISCONNECT] Socket ${socket.id} (Player: ${activePlayerId})`);
-    // Мы НЕ удаляем игрока из комнаты автоматически при дисконнекте.
-    // Это позволяет игрокам переподключаться (например, после переключения между приложениями)
-    // и предотвращает удаление комнаты, если хост временно ушел в оффлайн.
+    console.log(`[DISCONNECT] Socket ${socket.id} (Player: ${activePlayerId ?? 'unknown'})`);
+    // Player is intentionally NOT removed from the room on disconnect.
+    // Mobile Telegram clients switch apps frequently; the player re-joins via join_room
+    // with their persisted playerId and the server restores them to the existing slot.
   });
 };
 
+function transactionErrorMessage(error: roomManager.TransactionError): string {
+  switch (error) {
+    case 'not_your_turn':        return 'Сейчас не ваш ход';
+    case 'insufficient_balance': return 'Недостаточно средств для покупки';
+    case 'car_is_locked':        return 'Автомобиль заложен по долговому договору';
+    case 'car_not_found':        return 'Автомобиль не найден в рынке или гараже';
+    case 'player_not_found':     return 'Игрок не найден в комнате';
+    case 'room_not_found':       return 'Комната не найдена';
+    case 'sale_blocked_legal':   return 'Продажа запрещена: у авто юридический запрет регистрационных действий';
+  }
+}
+
 /**
  * Strips roomId from the incoming sync_action data to produce a valid
- * sync_action_result payload.  The explicit per-variant mapping preserves
+ * sync_action_result payload. The explicit per-variant mapping preserves
  * the discriminated union so TypeScript can verify type safety end-to-end.
  */
 function buildSyncResult(
@@ -147,23 +169,23 @@ function buildSyncResult(
 ): SyncResultData {
   const { playerId } = data;
   switch (data.action) {
-    case 'buyCar':             return { playerId, action: data.action, payload: data.payload };
-    case 'sellCar':            return { playerId, action: data.action, payload: data.payload };
-    case 'repairCar':          return { playerId, action: data.action, payload: data.payload };
-    case 'rentCar':            return { playerId, action: data.action, payload: data.payload };
-    case 'manualMove':         return { playerId, action: data.action, payload: data.payload };
-    case 'buyEnergy':          return { playerId, action: data.action, payload: data.payload };
-    case 'diagnoseCar':        return { playerId, action: data.action, payload: data.payload };
-    case 'updateMarket':       return { playerId, action: data.action, payload: data.payload };
-    case 'newsUpdate':         return { playerId, action: data.action, payload: data.payload };
-    case 'victory':            return { playerId, action: data.action, payload: data.payload };
-    case 'loanOffer':          return { playerId, action: data.action, payload: data.payload };
-    case 'loanAccepted':       return { playerId, action: data.action, payload: data.payload };
-    case 'repayDebt':          return { playerId, action: data.action, payload: data.payload };
-    case 'confiscateCar':      return { playerId, action: data.action, payload: data.payload };
-    case 'raceLobbyOpen':      return { playerId, action: data.action, payload: data.payload };
-    case 'raceChallengeInitiated': return { playerId, action: data.action, payload: data.payload };
-    case 'raceJoin':           return { playerId, action: data.action, payload: data.payload };
-    case 'raceResults':        return { playerId, action: data.action, payload: data.payload };
+    case 'buyCar':                    return { playerId, action: data.action, payload: data.payload };
+    case 'sellCar':                   return { playerId, action: data.action, payload: data.payload };
+    case 'repairCar':                 return { playerId, action: data.action, payload: data.payload };
+    case 'rentCar':                   return { playerId, action: data.action, payload: data.payload };
+    case 'manualMove':                return { playerId, action: data.action, payload: data.payload };
+    case 'buyEnergy':                 return { playerId, action: data.action, payload: data.payload };
+    case 'diagnoseCar':               return { playerId, action: data.action, payload: data.payload };
+    case 'updateMarket':              return { playerId, action: data.action, payload: data.payload };
+    case 'newsUpdate':                return { playerId, action: data.action, payload: data.payload };
+    case 'victory':                   return { playerId, action: data.action, payload: data.payload };
+    case 'loanOffer':                 return { playerId, action: data.action, payload: data.payload };
+    case 'loanAccepted':              return { playerId, action: data.action, payload: data.payload };
+    case 'repayDebt':                 return { playerId, action: data.action, payload: data.payload };
+    case 'confiscateCar':             return { playerId, action: data.action, payload: data.payload };
+    case 'raceLobbyOpen':             return { playerId, action: data.action, payload: data.payload };
+    case 'raceChallengeInitiated':    return { playerId, action: data.action, payload: data.payload };
+    case 'raceJoin':                  return { playerId, action: data.action, payload: data.payload };
+    case 'raceResults':               return { playerId, action: data.action, payload: data.payload };
   }
 }

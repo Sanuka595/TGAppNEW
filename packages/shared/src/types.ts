@@ -49,6 +49,8 @@ export interface DefectInstance {
   /** Unique instance ID generated via Math.random. */
   id: string;
   defectTypeId: string;
+  /** Severity is denormalised here so Car objects are self-contained for price/health calculations. */
+  severity: SeverityLevel;
   /** Hidden defects are not visible to the buyer at purchase time (Rarity/Premium). */
   isHidden: boolean;
   /** Repair cost stored as Decimal string to avoid floating-point errors. */
@@ -79,6 +81,59 @@ export interface Car {
   isLocked?: boolean;
   /** Purchase price as Decimal string — used for P&L calculations. */
   boughtFor?: string;
+  /** Odometer reading in km — increments on each rental turn. */
+  mileage?: number;
+  /** Typed event log for this car — structured replacement for free-form history[]. Phase 2: migrate fully. */
+  auditLog?: CarHistoryEntry[];
+}
+
+// ─── Car History ──────────────────────────────────────────────────────────────
+
+/** A typed ownership/event entry for a specific car. Replaces free-form history[] in Phase 2. */
+export interface CarHistoryEntry {
+  /** Unix timestamp in ms. */
+  timestamp: number;
+  event: 'acquired' | 'repaired' | 'diagnosed' | 'rented' | 'defect_revealed' | 'sold';
+  /** Human-readable description, e.g. 'Куплен за ₽5,000 на рынке Вёдра'. */
+  description: string;
+  /** Monetary amount involved, as Decimal string. */
+  amount?: string;
+  /** ID of the player who triggered this event. */
+  actorId?: string;
+}
+
+// ─── Game Event Log (persistence layer) ──────────────────────────────────────
+
+export type GameEventType =
+  | 'buy_car'
+  | 'sell_car'
+  | 'repair_car'
+  | 'rent_car'
+  | 'race_win'
+  | 'race_loss'
+  | 'dice_roll'
+  | 'market_refresh'
+  | 'loan_created'
+  | 'loan_repaid'
+  | 'car_confiscated'
+  | 'player_joined'
+  | 'player_left'
+  | 'game_won';
+
+/**
+ * Structured server-side event record designed for future persistence (Redis / DB).
+ * Accumulate per room; flush to DB on game end or on a rolling window.
+ */
+export interface GameEventLog {
+  /** Unique entry ID (crypto.randomUUID or nanoid). */
+  id: string;
+  roomId: string;
+  /** Unix timestamp in ms. */
+  timestamp: number;
+  playerId: string;
+  eventType: GameEventType;
+  /** Arbitrary structured data — keep serialisable (no class instances). */
+  payload: Record<string, unknown>;
 }
 
 // ─── Player ───────────────────────────────────────────────────────────────────
@@ -258,6 +313,17 @@ export interface RoomState {
   currentTurnIndex: number;
   winCondition: number;
   winnerId?: string;
+  /** Currently active market news event — authoritative on server, synced via room_updated. */
+  activeEvent?: GameNews | null;
+  /** Active P2P debt contracts — Phase 2: move from client GameState here. */
+  activeDebts?: Debt[];
+  /**
+   * Cumulative completed turns across all players.
+   * Drives server-side market refresh every 10 turns.
+   */
+  totalTurns?: number;
+  /** Unix timestamp of last market refresh — for server-side timer logic. */
+  marketRefreshedAt?: number;
 }
 
 // ─── Socket.IO Sync Actions ───────────────────────────────────────────────────

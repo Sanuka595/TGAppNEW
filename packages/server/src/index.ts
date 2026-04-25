@@ -6,6 +6,7 @@ import path from 'path';
 import fs from 'fs';
 import type { ClientToServerEvents, ServerToClientEvents } from '@tgperekup/shared';
 import { registerSocketHandlers } from './socketHandlers.js';
+import { cleanupStaleRooms, getActiveRoomsCount } from './roomManager.js';
 import TelegramBot from 'node-telegram-bot-api';
 
 const __filename = fileURLToPath(import.meta.url);
@@ -33,7 +34,7 @@ app.use((req: Request, res: Response, next: NextFunction) => {
 });
 
 app.get('/health', (_req: Request, res: Response) => {
-  res.status(200).send('OK');
+  res.status(200).json({ status: 'ok', activeRooms: getActiveRoomsCount() });
 });
 
 // In production, serve the client static build
@@ -63,6 +64,12 @@ const PORT = parseInt(process.env['PORT'] ?? '3000', 10);
 httpServer.listen(PORT, '0.0.0.0', () => {
   console.log(`🚀 Server running on port ${PORT} (v2)`);
 });
+
+// Remove rooms with no activity for > 30 min; runs every 10 min
+setInterval(() => {
+  const removed = cleanupStaleRooms();
+  if (removed > 0) console.log(`[CLEANUP] Removed ${removed} stale room(s)`);
+}, 10 * 60 * 1000);
 
 // ─── Telegram Bot ───────────────────────────────────────────────────────────
 const BOT_TOKEN = process.env['TELEGRAM_BOT_TOKEN'];

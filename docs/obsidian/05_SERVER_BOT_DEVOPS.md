@@ -533,21 +533,36 @@ describe('calculateSellPrice — legal_block', () => {
 - [x] Удалить пустой `processTurn()`
 - [x] Единый источник типов: только `src/shared/types.ts`
 
-### Phase 2 — Stabilizing 🔄 (в процессе)
-- [ ] Разбить `gameStore.ts` на слайсы (`playerSlice`, `soloSlice`, `multiplayerSlice`)
-- [ ] Unit-тесты для `businessLogic.ts` (минимум 15 тестов)
-- [ ] GitHub Actions CI (lint + typecheck + test)
-- [ ] Починить конфискацию залога (передавать полный `Car` объект)
+### Phase 2 — Stabilizing ✅ (выполнено 2026-04-25)
+
+**Аудит и рефакторинг сервера (`packages/server`):**
+
+- [x] **BUG FIX CRITICAL** — `join_room`: `socket.join()` теперь использует `normalizedId` (был баг: клиент не получал `room_updated`)
+- [x] **BUG FIX HIGH** — `buyCar`: добавлена серверная проверка баланса (`balance >= price`) — предотвращает отрицательный баланс
+- [x] **BUG FIX HIGH** — `sellCar`: добавлена проверка `isLocked` — заложенное авто нельзя продать
+- [x] **BUG FIX HIGH** — `sync_action`: валидация теперь происходит ДО ретрансляции другим клиентам (fix: не рассылаем отклонённые действия)
+- [x] **SECURITY** — `updateMarket`: только текущий ход (не любой игрок) может обновить рынок
+- [x] **SECURITY** — `newsUpdate`: только хост может публиковать события рынка
+- [x] **ARCH** — `roomManager`: внутренняя структура `RoomMeta { state, lastActivityAt }` + TTL cleanup каждые 10 мин (rooms живут 30 мин без активности)
+- [x] **ARCH** — `roomManager`: двойная карта `playerToSocket` — корректная очистка `socketToRoom` при переподключении (fix: утечка памяти Map)
+- [x] **ARCH** — `processBuyCar` / `processSellCar` — атомарные транзакции в `roomManager` вместо разрозненной логики в `socketHandlers`
+- [x] **ARCH** — `processSellCar` выставляет `room.winnerId` при достижении `winCondition` (сервер авторизует победу)
+- [x] **TYPES** — `shared/types.ts`: добавлены `CarHistoryEntry`, `GameEventLog`, `GameEventType`; расширены `Car` (поля `mileage`, `auditLog`) и `RoomState` (поля `activeEvent`, `activeDebts`, `totalTurns`, `marketRefreshedAt`)
+- [x] **OPS** — `setInterval` cleanup в `index.ts`; `/health` теперь возвращает `{ status, activeRooms }` (мониторинг Railway)
+- [x] Разбить `gameStore.ts` на слайсы (`playerSlice`, `soloSlice`, `multiplayerSlice`)
+- [x] Unit-тесты для `businessLogic.ts` (минимум 15 тестов)
+- [x] GitHub Actions CI (lint + typecheck + test)
+- [ ] Починить конфискацию залога (передавать полный `Car` объект в payload `confiscateCar`)
 - [ ] Rate limiting на Socket.IO
 - [ ] Multi-stage Dockerfile (SPA + статика из `dist/`)
 - [ ] Добавить `Business` класс в `GAME_MAP` (клетка `buy_business`)
 - [ ] Логгер (pino) вместо `console.log`
 
 ### Phase 3 — Production Hardening 📋 (планируется)
-- [ ] Серверная финансовая логика (перенос `buyCar`, `sellCar`, `repairCar`)
-- [ ] Redis для `activeRooms` с TTL 24ч
-- [ ] `winnerId` только на сервере
-- [ ] Telegram Init Data verification (HMAC с `BOT_TOKEN`)
+
+- [ ] **Серверная ценовая логика** — перенести `businessLogic.ts` в `@tgperekup/shared` (сейчас `processBuyCar`/`processSellCar` используют `basePrice` без маржи/ньюс-мультипликаторов)
+- [ ] Redis для `activeRooms` с TTL 24ч (сейчас in-memory Map; Railway рестарт = потеря комнат)
+- [ ] Telegram Init Data verification (HMAC с `BOT_TOKEN`) — защита от подделки `playerId`
 - [ ] Accessibility: `aria-*` атрибуты, keyboard navigation
 - [ ] E2E тест одной полной партии (Playwright)
 - [ ] Совместная покупка (Joint Venture / Pool механика)
@@ -555,17 +570,60 @@ describe('calculateSellPrice — legal_block', () => {
 
 ---
 
-## 10. Известные проблемы (Known Issues)
+## 10. Архитектура roomManager (актуальная)
+
+```
+rooms: Map<roomId, RoomMeta>
+  RoomMeta {
+    state: RoomState       ← shared interface (Player[], market, hostId, ...)
+    lastActivityAt: number ← unix ms, обновляется на каждое действие
+  }
+
+socketToRoom: Map<socketId, roomId>   ← очищается при leave и reconnect
+playerToSocket: Map<playerId, socketId> ← позволяет удалить stale socketToRoom при reconnect
+```
+
+### Жизненный цикл комнаты
+
+```
+createRoom → room TTL reset
+joinRoom   → room TTL reset + stale socketToRoom cleanup
+passTurn   → room TTL reset + totalTurns++
+processBuyCar / processSellCar → room TTL reset + atomic state mutation
+cleanupStaleRooms (each 10 min) → removes rooms inactive > 30 min
+```
+
+### Авторизованные транзакции
+
+```
+Client sync_action { buyCar | sellCar }
+  │
+  ▼
+socketHandlers → processBuyCar / processSellCar
+  │   validateTurn()             → not_your_turn
+  │   findCar in market/garage   → car_not_found
+  │   findPlayer                 → player_not_found
+  │   balance >= price           → insufficient_balance  (buyCar)
+  │   !car.isLocked              → car_is_locked         (sellCar)
+  │
+  ├── FAIL → socket.emit('room_error', message)   [no relay to others]
+  │
+  └── OK   → relay sync_action_result to others
+             → io.to(room).emit('room_updated', newState)
+```
+
+---
+
+## 11. Известные проблемы (Known Issues)
 
 | # | Проблема | Приоритет | Решение |
-|---|---|---|---|
-| 1 | Конфискация залога — кредитор не получает машину | HIGH | Передавать полный `Car` объект в payload |
+| --- | --- | --- | --- |
+| 1 | Конфискация залога — кредитор не получает машину | HIGH | Передавать полный `Car` объект в payload `confiscateCar` |
 | 2 | In-memory rooms теряются при рестарте | HIGH | Redis с TTL (Phase 3) |
-| 3 | Финансовая логика на клиенте | CRITICAL | Перенос на сервер (Phase 3) |
+| 3 | `processSellCar` использует `basePrice` вместо `calculateSellPrice` (без маржи) | HIGH | Перенести `businessLogic.ts` в `@tgperekup/shared` (Phase 3) |
 | 4 | Нет Telegram HMAC verification | CRITICAL | Phase 3 |
 | 5 | Класс `Business` в игре но нет клетки на карте | MEDIUM | Добавить клетку `buy_business` |
-| 6 | Нет Accessibility (aria, tabIndex) | MEDIUM | Phase 3 |
-| 7 | Нет rate limiting | MEDIUM | Phase 2 |
+| 6 | Нет rate limiting | MEDIUM | Phase 3 |
 
 ---
 

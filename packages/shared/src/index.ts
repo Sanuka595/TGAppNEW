@@ -7,6 +7,7 @@ export type {
   DefectType,
   DefectInstance,
   Car,
+  CarHistoryEntry,
   Player,
   Debt,
   BoardCell,
@@ -18,6 +19,23 @@ export type {
   SyncActionPayload,
   ServerToClientEvents,
   ClientToServerEvents,
+  GameEventType,
+  GameEventLog,
 } from './types.js';
 
 export { HEALTH_PENALTIES, GAME_MAP } from './types.js';
+
+export {
+  SEVERITY_COST_RANGES,
+  OWNERSHIP_TAX_RATES,
+  PROFIT_MARGINS,
+  RENT_INCOME,
+  deterministicMultiplier,
+  calculateCarHealth,
+  applyNewsEffects,
+  calculateCurrentMarketValue,
+  calculateSellPrice,
+  calculateOwnershipTax,
+  calculateRentIncome,
+  generateRepairCost,
+} from './businessLogic.js';
