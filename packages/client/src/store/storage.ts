@@ -1,5 +1,7 @@
-// NOTE: Do NOT import StateStorage from 'zustand/middleware' — causes WSOD in Vite.
-// Using a local interface copy instead.
+// src/store/storage.ts
+// НЕ импортировать StateStorage из zustand/middleware — это вызывает WSOD в Vite!
+// Создаём локальный интерфейс-копию:
+
 interface TWAStorage {
   getItem: (name: string) => string | null | Promise<string | null>;
   setItem: (name: string, value: string) => void | Promise<void>;

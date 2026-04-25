@@ -3,6 +3,7 @@ import { MainLayout } from './components/MainLayout';
 import { RadialBoard } from './components/game/RadialBoard';
 import { GarageView } from './components/game/GarageView';
 import { MarketView } from './components/game/MarketView';
+import { ActionModal } from './components/game/ActionModal';
 import { useGameStore, initSocketListeners } from './store/gameStore';
 import { useUiStore } from './store/uiStore';
 import { 
@@ -98,6 +99,7 @@ export default function App(): JSX.Element {
   return (
     <MainLayout>
       {renderContent()}
+      <ActionModal />
     </MainLayout>
   );
 }

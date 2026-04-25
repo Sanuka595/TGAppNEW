@@ -45,3 +45,7 @@ docker-compose.override.yml
 
 .gemini/
 .claude/
+
+# PNPM & Devcontainer
+.pnpm-store/
+.devcontainer/

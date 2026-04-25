@@ -1,18 +1,10 @@
 {
   "name": "@tgperekup/shared",
-  "version": "1.0.0",
+  "version": "0.0.0",
   "private": true,
   "type": "module",
-  "main": "./dist/index.js",
-  "types": "./dist/index.d.ts",
-  "exports": {
-    ".": {
-      "import": "./dist/index.js",
-      "types": "./dist/index.d.ts"
-    }
-  },
   "scripts": {
-    "build": "tsc --build",
-    "typecheck": "tsc --noEmit"
-  }
+    "build": "tsc -b"
+  },
+  "devDependencies": {}
 }

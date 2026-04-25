@@ -88,7 +88,30 @@ export const registerSocketHandlers = (
     if (data.action === 'updateMarket') {
       updated = roomManager.updateMarket(data.roomId, data.payload);
     } else if (data.action === 'buyCar') {
+      const room = roomManager.getRoom(data.roomId);
+      const car = room?.market.find(c => c.id === data.payload);
+      const player = room?.players.find(p => p.id === data.playerId);
+
+      if (car && player) {
+        const newBalance = (BigInt(player.balance) - BigInt(car.basePrice)).toString();
+        roomManager.updatePlayer(data.roomId, data.playerId, {
+          balance: newBalance,
+          garage: [...player.garage, car],
+        });
+      }
       updated = roomManager.removeCarFromMarket(data.roomId, data.payload);
+    } else if (data.action === 'sellCar') {
+      const room = roomManager.getRoom(data.roomId);
+      const player = room?.players.find(p => p.id === data.playerId);
+      const car = player?.garage.find(c => c.id === data.payload);
+
+      if (car && player) {
+        const newBalance = (BigInt(player.balance) + BigInt(car.basePrice)).toString();
+        updated = roomManager.updatePlayer(data.roomId, data.playerId, {
+          balance: newBalance,
+          garage: player.garage.filter(c => c.id !== data.payload),
+        });
+      }
     }
 
     if (updated !== null) io.to(data.roomId).emit('room_updated', updated);

@@ -111,3 +111,17 @@ export const removeCarFromMarket = (roomId: string, carId: string): RoomState | 
   room.market = room.market.filter(c => c.id !== carId);
   return room;
 };
+
+export const updatePlayer = (
+  roomId: string,
+  playerId: string,
+  update: Partial<Player>,
+): RoomState | null => {
+  const room = activeRooms.get(roomId);
+  if (room === undefined) return null;
+  const index = room.players.findIndex(p => p.id === playerId);
+  if (index === -1) return null;
+
+  room.players[index] = { ...room.players[index]!, ...update };
+  return room;
+};
