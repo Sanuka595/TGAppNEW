@@ -245,21 +245,29 @@ export const useGameStore = create<GameStore>()(
         const myId = get().player.id;
         const inRoom = roomState.players.some(p => p.id === myId);
         const me = roomState.players.find(p => p.id === myId);
-        set({
+        
+        const myIndex = roomState.players.findIndex(p => p.id === myId);
+        const isNowMyTurn = inRoom && roomState.currentTurnIndex === myIndex;
+        const wasMyTurn = get().currentTurnIndex === get().players.findIndex(p => p.id === myId);
+        const turnChangedToMe = isNowMyTurn && !wasMyTurn;
+
+        set((state) => ({
           players: roomState.players,
           market: roomState.market,
           player: {
-            ...get().player,
+            ...state.player,
             ...me,
           },
-          garage: me?.garage ?? get().garage,
+          garage: me?.garage ?? state.garage,
           roomId: inRoom ? roomState.id : null,
           isHost: inRoom ? roomState.hostId === myId : false,
           currentTurnIndex: inRoom ? roomState.currentTurnIndex : 0,
           winCondition: inRoom ? roomState.winCondition : 0,
           winnerId: inRoom ? roomState.winnerId ?? null : null,
           hostId: roomState.hostId,
-        });
+          hasRolledThisTurn: turnChangedToMe ? false : state.hasRolledThisTurn,
+          lastDiceRoll: turnChangedToMe ? 0 : state.lastDiceRoll,
+        }));
       },
       handleDiceRollResult: (playerId, diceValue, newPosition) => {
         const { player, players } = get();

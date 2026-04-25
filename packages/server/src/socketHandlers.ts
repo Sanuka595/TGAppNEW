@@ -68,10 +68,9 @@ export const registerSocketHandlers = (
       diceValue,
       newPosition: player !== undefined ? player.position : 0,
     });
-
-    // 2. Advance turn only after result is broadcast
-    const updated = roomManager.passTurn(roomId);
-    if (updated !== null) io.to(roomId).emit('room_updated', updated);
+    
+    // ВАЖНО: Мы БОЛЬШЕ НЕ передаем ход автоматически! 
+    // Игрок должен нажать кнопку "Завершить ход", чтобы у него было время купить машину.
   });
 
   socket.on('pass_turn', ({ roomId, playerId }) => {

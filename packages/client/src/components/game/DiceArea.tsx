@@ -5,6 +5,7 @@ import { useGameStore } from '../../store/gameStore';
 export const DiceArea: React.FC = () => {
   const { 
     rollDice, 
+    passTurn,
     lastDiceRoll, 
     player, 
     players, 
@@ -67,7 +68,7 @@ export const DiceArea: React.FC = () => {
         )}
       </div>
 
-      {lastDiceRoll && (
+      {lastDiceRoll ? (
         <motion.div 
           initial={{ opacity: 0 }}
           animate={{ opacity: 1 }}
@@ -77,6 +78,18 @@ export const DiceArea: React.FC = () => {
             Результат: {lastDiceRoll}
           </span>
         </motion.div>
+      ) : null}
+
+      {isMyTurn && hasRolledThisTurn && (
+        <motion.button
+          initial={{ opacity: 0, y: 10 }}
+          animate={{ opacity: 1, y: 0 }}
+          whileTap={{ scale: 0.95 }}
+          onClick={() => passTurn()}
+          className="mt-4 px-6 py-3 bg-rose-500 hover:bg-rose-600 text-white rounded-2xl font-black uppercase tracking-tighter shadow-lg shadow-rose-500/30 w-full max-w-[200px]"
+        >
+          Завершить ход
+        </motion.button>
       )}
     </div>
   );
