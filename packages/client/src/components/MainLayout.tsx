@@ -18,13 +18,6 @@ export const MainLayout: React.FC<Props> = ({ children }) => {
       <main className="flex-1 overflow-y-auto relative">
         <div className="p-4 min-h-full">
           {children}
-          {/* Placeholder based on tab */}
-          <div className="mt-8 flex flex-col items-center justify-center opacity-50">
-            <h2 className="text-xl font-bold uppercase tracking-tighter">
-              Раздел: {activeTab}
-            </h2>
-            <p className="text-xs mt-2">Здесь скоро будет контент...</p>
-          </div>
         </div>
       </main>
       
