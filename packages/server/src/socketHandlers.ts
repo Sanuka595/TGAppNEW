@@ -32,11 +32,12 @@ export const registerSocketHandlers = (
   });
 
   socket.on('join_room', ({ roomId, player }, callback) => {
-    console.log(`Player ${player.id} attempting to join room ${roomId}`);
+    console.log(`[JOIN_ROOM] Player ${player.id} attempting to join room "${roomId}"`);
     activePlayerId = player.id;
-    const result = roomManager.joinRoom(socket.id, roomId, player);
+    const normalizedId = roomId.toUpperCase().trim();
+    const result = roomManager.joinRoom(socket.id, normalizedId, player);
     if (!result.success) {
-      console.log(`Join failed for player ${player.id}: ${result.error}`);
+      console.log(`[JOIN_FAILED] Player ${player.id} in room "${normalizedId}": ${result.error}`);
       callback({ success: false, error: result.error });
       return;
     }
@@ -129,11 +130,10 @@ export const registerSocketHandlers = (
   });
 
   socket.on('disconnect', () => {
-    if (activePlayerId === null) return;
-    const result = roomManager.leaveRoom(socket.id, activePlayerId);
-    if (result !== null && result.room.players.length > 0) {
-      io.to(result.roomId).emit('room_updated', result.room);
-    }
+    console.log(`[DISCONNECT] Socket ${socket.id} (Player: ${activePlayerId})`);
+    // Мы НЕ удаляем игрока из комнаты автоматически при дисконнекте.
+    // Это позволяет игрокам переподключаться (например, после переключения между приложениями)
+    // и предотвращает удаление комнаты, если хост временно ушел в оффлайн.
   });
 };
 

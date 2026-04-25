@@ -40,7 +40,7 @@ export default function App(): JSX.Element {
       return;
     }
 
-    useGameStore.getState().joinRoom(param);
+    useGameStore.getState().joinRoom(param.toUpperCase());
     triggerHapticFeedback('medium');
   }, []);
 

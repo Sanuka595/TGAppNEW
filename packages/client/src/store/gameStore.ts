@@ -231,10 +231,11 @@ export const useGameStore = create<GameStore>()(
       },
       joinRoom: (roomId) => {
         const { player } = get();
-        socket.emit('join_room', { roomId, player }, (res: { success: boolean; error?: string }) => {
+        const normalizedId = roomId.toUpperCase().trim();
+        socket.emit('join_room', { roomId: normalizedId, player }, (res: { success: boolean; error?: string }) => {
           if (res.success) {
-            set({ roomId, isHost: false, isSoloMode: false });
-            get().addLog(`Вы присоединились к комнате ${roomId}`, 'info');
+            set({ roomId: normalizedId, isHost: false, isSoloMode: false });
+            get().addLog(`Вы присоединились к комнате ${normalizedId}`, 'info');
           } else {
             get().addLog(`Ошибка присоединения: ${res.error}`, 'error');
           }
