@@ -15,7 +15,7 @@
     "build": "tsc -b"
   },
   "dependencies": {
-    "decimal.js": "10.6.0"
-  },
-  "devDependencies": {}
+    "decimal.js": "10.6.0",
+    "zod": "4.3.6"
+  }
 }

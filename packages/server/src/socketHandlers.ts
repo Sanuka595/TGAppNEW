@@ -1,8 +1,9 @@
 import type { Server, Socket } from 'socket.io';
-import type {
-  ClientToServerEvents,
-  ServerToClientEvents,
+import { 
+  ClientToServerEvents, 
+  ServerToClientEvents, 
   SyncActionPayload,
+  PlayerSchema 
 } from '@tgperekup/shared';
 import * as roomManager from './roomManager.js';
 
@@ -22,22 +23,27 @@ export const registerSocketHandlers = (
   let activePlayerId: string | null = null;
 
   socket.on('create_room', ({ player, winCondition }, callback) => {
-    activePlayerId = player.id;
-    const roomId = roomManager.createRoom(socket.id, player, winCondition);
-    console.log(`[ROOM] ${roomId} created by player ${player.id}`);
-    socket.join(roomId);
-    const room = roomManager.getRoom(roomId);
-    if (room !== undefined) io.to(roomId).emit('room_updated', room);
-    callback({ success: true, roomId });
+    try {
+      const validatedPlayer = PlayerSchema.parse(player);
+      activePlayerId = validatedPlayer.id;
+      const roomId = roomManager.createRoom(socket.id, validatedPlayer, winCondition);
+      console.log(`[ROOM] ${roomId} created by player ${validatedPlayer.id}`);
+      socket.join(roomId);
+      const room = roomManager.getRoom(roomId);
+      if (room !== undefined) io.to(roomId).emit('room_updated', room);
+      callback({ success: true, roomId });
+    } catch (e) {
+      callback({ success: false, error: 'Invalid player data' });
+    }
   });
 
   socket.on('join_room', ({ roomId, player }, callback) => {
-    // Normalise before room lookup AND before socket.join — both must use the same ID
-    const normalizedId = roomId.toUpperCase().trim();
-    console.log(`[JOIN] Player ${player.id} → room "${normalizedId}"`);
-    activePlayerId = player.id;
+    try {
+      const validatedPlayer = PlayerSchema.parse(player);
+      const normalizedId = roomId.toUpperCase().trim();
+      activePlayerId = validatedPlayer.id;
 
-    const result = roomManager.joinRoom(socket.id, normalizedId, player);
+      const result = roomManager.joinRoom(socket.id, normalizedId, validatedPlayer);
     if (!result.success) {
       console.log(`[JOIN_FAILED] ${player.id} in "${normalizedId}": ${result.error}`);
       callback({ success: false, error: result.error });
@@ -46,10 +52,13 @@ export const registerSocketHandlers = (
 
     // FIX: was socket.join(roomId) — used the raw un-normalised ID, causing room_updated
     // to be broadcast to a different Socket.IO room than the one the client joined.
-    socket.join(normalizedId);
-    console.log(`[JOIN_OK] Player ${player.id} in room ${normalizedId}`);
-    io.to(normalizedId).emit('room_updated', result.room);
-    callback({ success: true });
+      socket.join(normalizedId);
+      console.log(`[JOIN_OK] Player ${player.id} in room ${normalizedId}`);
+      io.to(normalizedId).emit('room_updated', result.room);
+      callback({ success: true });
+    } catch (e) {
+      callback({ success: false, error: 'Invalid player data' });
+    }
   });
 
   socket.on('dice_roll', ({ roomId, playerId }) => {

@@ -1,10 +1,18 @@
-// ─── Union Types ──────────────────────────────────────────────────────────────
+import { 
+  SeverityLevel, 
+  CarTier, 
+  DefectCategory, 
+  DefectInstance, 
+  Car, 
+  CarHistoryEntry, 
+  Player,
+  RoomState,
+  Debt,
+  GameNews,
+  LogType
+} from './dtos/index.js';
 
-export type SeverityLevel = 'Light' | 'Medium' | 'Serious' | 'Critical';
-
-export type CarTier = 'Bucket' | 'Scrap' | 'Business' | 'Premium' | 'Rarity';
-
-export type DefectCategory = 'Engine' | 'Electrical' | 'Suspension' | 'Body';
+export { SeverityLevel, CarTier, DefectCategory, DefectInstance, Car, CarHistoryEntry, Player, RoomState, Debt, GameNews, LogType };
 
 export type CellType =
   | 'sale'
@@ -19,8 +27,6 @@ export type CellType =
   | 'race'
   | 'rent'
   | 'fines';
-
-export type LogType = 'bot' | 'system' | 'debt' | 'quest' | 'success' | 'error' | 'info';
 
 // ─── Constants ────────────────────────────────────────────────────────────────
 
@@ -42,64 +48,6 @@ export interface DefectType {
   severity: SeverityLevel;
   /** true only for 'legal_block' — prevents the car from being sold. */
   preventsSale?: boolean;
-}
-
-/** A concrete defect instance attached to a specific car. */
-export interface DefectInstance {
-  /** Unique instance ID generated via Math.random. */
-  id: string;
-  defectTypeId: string;
-  /** Severity is denormalised here so Car objects are self-contained for price/health calculations. */
-  severity: SeverityLevel;
-  /** Hidden defects are not visible to the buyer at purchase time (Rarity/Premium). */
-  isHidden: boolean;
-  /** Repair cost stored as Decimal string to avoid floating-point errors. */
-  repairCost: string;
-  isRepaired: boolean;
-}
-
-// ─── Car ─────────────────────────────────────────────────────────────────────
-
-export interface Car {
-  /** Unique ID generated via Math.random. */
-  id: string;
-  name: string;
-  tier: CarTier;
-  /** Base market price stored as Decimal string. */
-  basePrice: string;
-  defects: DefectInstance[];
-  history: string[];
-  /**
-   * Condition score 0–100.
-   * Calculated as: `100 - sum(HEALTH_PENALTIES[defect.severity])` for all unrepaired defects.
-   * Clamped to a minimum of 0.
-   */
-  health: number;
-  /** true if the car was rented out this turn. */
-  isRented?: boolean;
-  /** true if the car is locked as debt collateral. */
-  isLocked?: boolean;
-  /** Purchase price as Decimal string — used for P&L calculations. */
-  boughtFor?: string;
-  /** Odometer reading in km — increments on each rental turn. */
-  mileage?: number;
-  /** Typed event log for this car — structured replacement for free-form history[]. Phase 2: migrate fully. */
-  auditLog?: CarHistoryEntry[];
-}
-
-// ─── Car History ──────────────────────────────────────────────────────────────
-
-/** A typed ownership/event entry for a specific car. Replaces free-form history[] in Phase 2. */
-export interface CarHistoryEntry {
-  /** Unix timestamp in ms. */
-  timestamp: number;
-  event: 'acquired' | 'repaired' | 'diagnosed' | 'rented' | 'defect_revealed' | 'sold';
-  /** Human-readable description, e.g. 'Куплен за ₽5,000 на рынке Вёдра'. */
-  description: string;
-  /** Monetary amount involved, as Decimal string. */
-  amount?: string;
-  /** ID of the player who triggered this event. */
-  actorId?: string;
 }
 
 // ─── Game Event Log (persistence layer) ──────────────────────────────────────
@@ -136,54 +84,7 @@ export interface GameEventLog {
   payload: Record<string, unknown>;
 }
 
-// ─── Player ───────────────────────────────────────────────────────────────────
-
-export interface Player {
-  /** Persistent ID stored in localStorage — must survive reconnects. */
-  id: string;
-  name?: string;
-  /** Current balance as Decimal string. Starting value: '2000'. */
-  balance: string;
-  /** @deprecated Unused fuel mechanic — kept for backwards compatibility. */
-  fuel: number;
-  /** Current board position, 0–11. */
-  position: number;
-  /** Reputation score — reserved for penalty mechanics. Starting value: 100. */
-  reputation: number;
-  /** Player's owned cars. Optional because RoomState may omit it. */
-  garage?: Car[];
-  /** Tactical energy 0–3. Starting value: 3. */
-  energy: number;
-  /**
-   * Counter for energy regeneration, range 0–1.
-   * Every 2 D6 turns this counter rolls over and grants +1 energy.
-   */
-  energyRegenCounter: number;
-}
-
 // ─── Debt (P2P Lending) ───────────────────────────────────────────────────────
-
-export interface Debt {
-  id: string;
-  lenderId: string;
-  /** undefined means this is an open offer not yet accepted by anyone. */
-  borrowerId?: string;
-  /** Loan principal as Decimal string. */
-  amount: string;
-  /** Interest rate as a percentage string, e.g. '20' means 20%. */
-  interest: string;
-  /**
-   * Total repayment amount: `amount * (1 + interest / 100)`.
-   * Calculated once at creation time and stored.
-   */
-  totalToPay: string;
-  /** Turns remaining before automatic collateral confiscation. */
-  turnsLeft: number;
-  /** Original term — stored for display purposes. */
-  initialTurns: number;
-  collateralCarId?: string;
-  status: 'pending' | 'active' | 'closed' | 'confiscated';
-}
 
 // ─── Board ────────────────────────────────────────────────────────────────────
 
@@ -220,18 +121,6 @@ export interface SoloQuest {
   minHealth: number;
   turnsLeft: number;
   reward: number;
-}
-
-// ─── Market Events ────────────────────────────────────────────────────────────
-
-export interface GameNews {
-  id: string;
-  title: string;
-  description: string;
-  effects: {
-    tierMultipliers: Partial<Record<CarTier, number>>;
-    modelMultipliers: Record<string, number>;
-  };
 }
 
 // ─── Log ──────────────────────────────────────────────────────────────────────
@@ -300,30 +189,6 @@ export interface GameState {
     diceValue: number;
     fromPosition: number;
   } | null;
-}
-
-// ─── Room State (server-side) ─────────────────────────────────────────────────
-
-export interface RoomState {
-  /** 6-character room code, e.g. 'A3F7K2'. */
-  id: string;
-  players: Player[];
-  market: Car[];
-  hostId: string;
-  currentTurnIndex: number;
-  winCondition: number;
-  winnerId?: string;
-  /** Currently active market news event — authoritative on server, synced via room_updated. */
-  activeEvent?: GameNews | null;
-  /** Active P2P debt contracts — Phase 2: move from client GameState here. */
-  activeDebts?: Debt[];
-  /**
-   * Cumulative completed turns across all players.
-   * Drives server-side market refresh every 10 turns.
-   */
-  totalTurns?: number;
-  /** Unix timestamp of last market refresh — for server-side timer logic. */
-  marketRefreshedAt?: number;
 }
 
 // ─── Socket.IO Sync Actions ───────────────────────────────────────────────────

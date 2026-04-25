@@ -7,69 +7,61 @@ import { ActionModal } from './components/game/ActionModal';
 import { MultiplayerModal } from './components/game/MultiplayerModal';
 import { useGameStore, initSocketListeners } from './store/gameStore';
 import { useUiStore } from './store/uiStore';
-import { 
-  getStartParam, 
-  safeWebAppReady, 
-  safeWebAppExpand, 
-  safeSetHeaderColor, 
-  safeSetBackgroundColor,
-  setupBackButton,
-  triggerHapticFeedback,
-} from './lib/tmaProvider';
+import { useTelegram } from './hooks/useTelegram';
+import { getTmaStartParam } from './lib/tmaProvider';
 
 export default function App(): JSX.Element {
+  const { haptic, webApp } = useTelegram();
   const activeTab = useUiStore((s) => s.activeTab);
   const logs = useGameStore(s => s.logs);
 
   const handleStartParam = useCallback((param: string) => {
     if (param === 'solo') {
       useGameStore.getState().startSoloMode();
-      triggerHapticFeedback('medium');
+      haptic('impact', 'medium');
       return;
     }
 
     if (param === 'multi') {
       useUiStore.getState().setIsCreateRoomModalOpen(true);
-      triggerHapticFeedback('medium');
+      haptic('impact', 'medium');
       return;
     }
 
     if (param === 'reset') {
       useGameStore.getState().resetAccount();
-      triggerHapticFeedback('medium');
+      haptic('impact', 'medium');
       return;
     }
 
     useGameStore.getState().joinRoom(param.toUpperCase());
-    triggerHapticFeedback('medium');
-  }, []);
+    haptic('impact', 'medium');
+  }, [haptic]);
 
   const handleBackButton = useCallback(() => {
     const handled = useUiStore.getState().closeTopUiLayer();
     if (handled) {
-      triggerHapticFeedback('light');
+      haptic('impact', 'light');
     }
-  }, []);
+  }, [haptic]);
 
   useEffect(() => {
-    safeWebAppReady();
-    safeWebAppExpand();
-    safeSetHeaderColor('secondary_bg_color');
-    safeSetBackgroundColor('bg_color');
-
     initSocketListeners();
-    const cleanupBackButton = setupBackButton(handleBackButton);
+    
+    const backButton = webApp.BackButton;
+    backButton.onClick(handleBackButton);
+    backButton.show();
 
     // Handle deep links
-    const startParam = getStartParam();
+    const startParam = getTmaStartParam();
     if (startParam) {
       handleStartParam(startParam);
     }
 
     return () => {
-      cleanupBackButton?.();
+      backButton.offClick(handleBackButton);
     };
-  }, [handleBackButton, handleStartParam]);
+  }, [handleBackButton, handleStartParam, webApp]);
 
   const renderContent = () => {
     switch (activeTab) {

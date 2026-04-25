@@ -1,21 +1,10 @@
 export type {
-  SeverityLevel,
-  CarTier,
-  DefectCategory,
   CellType,
-  LogType,
   DefectType,
-  DefectInstance,
-  Car,
-  CarHistoryEntry,
-  Player,
-  Debt,
   BoardCell,
   SoloQuest,
-  GameNews,
   LogEntry,
   GameState,
-  RoomState,
   SyncActionPayload,
   ServerToClientEvents,
   ClientToServerEvents,
@@ -24,6 +13,8 @@ export type {
 } from './types.js';
 
 export { HEALTH_PENALTIES, GAME_MAP } from './types.js';
+
+export * from './dtos/index.js';
 
 export {
   SEVERITY_COST_RANGES,

@@ -1,168 +1,98 @@
-declare global {
-  interface Window {
-    Telegram?: {
-      WebApp?: {
-        initDataUnsafe?: {
-          user?: {
-            id: number;
-            first_name: string;
-            last_name?: string;
-            username?: string;
-            language_code?: string;
-          };
-          auth_date: number;
-          hash: string;
-          start_param?: string;
-        };
-        ready: () => void;
-        expand: () => void;
-        setHeaderColor: (color: string) => void;
-        setBackgroundColor: (color: string) => void;
-        BackButton?: {
-          onClick: (cb: () => void) => void;
-          offClick: (cb: () => void) => void;
-          show?: () => void;
-          hide?: () => void;
-        };
-        HapticFeedback?: {
-          impactOccurred: (style: 'light' | 'medium' | 'heavy') => void;
-          selectionChanged: () => void;
-          notificationOccurred: (type: 'success' | 'warning' | 'error' | 'info') => void;
-        };
-      };
-    };
-  }
-}
+import WebApp from '@twa-dev/sdk';
 
-type TelegramWebApp = NonNullable<Window['Telegram']>['WebApp'];
+/**
+ * Checks if the application is running inside Telegram Web App.
+ */
+export const isTmaAvailable = (): boolean => {
+  return typeof window !== 'undefined' && WebApp.initData !== '';
+};
 
-function getTelegramWebApp(): TelegramWebApp | undefined {
-  if (typeof window === 'undefined') {
-    return undefined;
-  }
-  return window.Telegram?.WebApp;
-}
-
-// Проверка наличия TMA SDK
-export function isTelegramWebAppAvailable(): boolean {
-  return Boolean(getTelegramWebApp()?.initDataUnsafe);
-}
-
-// Получение данных пользователя из TMA
-export function getTelegramUser(): {
-  id: number;
-  first_name: string;
-  last_name?: string;
-  username?: string;
-  language_code?: string;
-} | null {
-  return getTelegramWebApp()?.initDataUnsafe?.user ?? null;
-}
-
-// Получение start_param из TMA или URL
-export function getStartParam(): string | null {
-  const webApp = getTelegramWebApp();
-  if (webApp?.initDataUnsafe) {
-    return webApp.initDataUnsafe.start_param ?? null;
-  }
-  
-  // Fallback для URLSearchParams
+/**
+ * Triggers haptic feedback with safe check.
+ */
+export const triggerHaptic = (
+  type: 'impact' | 'notification' | 'selection',
+  style: 'light' | 'medium' | 'heavy' | 'success' | 'warning' | 'error' = 'medium'
+) => {
   try {
-    const urlParams = new URLSearchParams(window.location.search);
-    return urlParams.get('startapp') || null;
-  } catch {
-    return null;
-  }
-}
-
-// Haptic Feedback utility
-export function triggerHapticFeedback(type: 'light' | 'medium' | 'heavy' | 'selection' | 'error'): void {
-  const haptic = getTelegramWebApp()?.HapticFeedback;
-  if (!haptic) {
-    return;
-  }
-
-  try {
-    switch (type) {
-      case 'light':
-        haptic.impactOccurred('light');
-        break;
-      case 'medium':
-        haptic.impactOccurred('medium');
-        break;
-      case 'heavy':
-        haptic.impactOccurred('heavy');
-        break;
-      case 'selection':
-        haptic.selectionChanged();
-        break;
-      case 'error':
-        haptic.notificationOccurred('error');
-        break;
+    if (type === 'impact') {
+      WebApp.HapticFeedback.impactOccurred(style as 'light' | 'medium' | 'heavy');
+    } else if (type === 'notification') {
+      WebApp.HapticFeedback.notificationOccurred(style as 'success' | 'warning' | 'error');
+    } else {
+      WebApp.HapticFeedback.selectionChanged();
     }
-  } catch {
-    // HapticFeedback может быть недоступен в некоторых версиях
-  }
-}
-
-// Safe wrapper для WebApp методов
-export function safeWebAppReady(): void {
-  const webApp = getTelegramWebApp();
-  if (!webApp) return;
-  try {
-    webApp.ready();
   } catch (e) {
-    console.warn('WebApp.ready() failed:', e);
+    console.debug('Haptic feedback not supported in this environment');
   }
-}
+};
 
-export function safeWebAppExpand(): void {
-  const webApp = getTelegramWebApp();
-  if (!webApp) return;
-  try {
-    webApp.expand();
-  } catch (e) {
-    console.warn('WebApp.expand() failed:', e);
-  }
-}
+/**
+ * Cloud Storage helpers (TMA API 6.9+)
+ */
+export const cloudStorage = {
+  setItem: (key: string, value: string): Promise<boolean> => {
+    return new Promise((resolve) => {
+      try {
+        WebApp.CloudStorage.setItem(key, value, (error, success) => {
+          if (error) console.error('CloudStorage Error:', error);
+          resolve(!!success);
+        });
+      } catch (e) {
+        resolve(false);
+      }
+    });
+  },
+  getItem: (key: string): Promise<string | null> => {
+    return new Promise((resolve) => {
+      try {
+        WebApp.CloudStorage.getItem(key, (error, value) => {
+          if (error) console.error('CloudStorage Error:', error);
+          resolve(value || null);
+        });
+      } catch (e) {
+        resolve(null);
+      }
+    });
+  },
+};
 
-export function safeSetHeaderColor(color: 'bg_color' | 'secondary_bg_color' | `#${string}`): void {
-  const webApp = getTelegramWebApp();
-  if (!webApp) return;
-  try {
-    webApp.setHeaderColor(color);
-  } catch (e) {
-    console.warn('WebApp.setHeaderColor() failed:', e);
-  }
-}
+/**
+ * Biometric Manager helpers (TMA API 7.2+)
+ */
+export const biometrics = {
+  requestAccess: (reason: string): Promise<boolean> => {
+    return new Promise((resolve) => {
+      try {
+        if (!WebApp.BiometricManager.isInited) {
+          WebApp.BiometricManager.init(() => {
+            WebApp.BiometricManager.requestAccess({ reason }, (success) => resolve(!!success));
+          });
+        } else {
+          WebApp.BiometricManager.requestAccess({ reason }, (success) => resolve(!!success));
+        }
+      } catch (e) {
+        resolve(false);
+      }
+    });
+  },
+};
 
-export function safeSetBackgroundColor(color: 'bg_color' | 'secondary_bg_color' | `#${string}`): void {
-  const webApp = getTelegramWebApp();
-  if (!webApp) return;
-  try {
-    webApp.setBackgroundColor(color);
-  } catch (e) {
-    console.warn('WebApp.setBackgroundColor() failed:', e);
-  }
-}
+/**
+ * Initializes the WebApp and sets basic UI theme.
+ */
+export const initTma = () => {
+  if (!isTmaAvailable()) return;
 
-// BackButton handler
-export function setupBackButton(onClick: () => void): (() => void) | undefined {
-  const backButton = getTelegramWebApp()?.BackButton;
-  if (!backButton) return;
+  WebApp.ready();
+  WebApp.expand();
   
-  try {
-    backButton.show?.();
-    backButton.onClick(onClick);
-    return () => {
-      backButton.offClick(onClick);
-    };
-  } catch {
-    // BackButton может быть недоступен
-  }
-}
+  // Set theme-based colors
+  WebApp.setHeaderColor('bg_color');
+  WebApp.setBackgroundColor('bg_color');
+};
 
-// Dev mode fallback
-export function isDevMode(): boolean {
-  return !isTelegramWebAppAvailable();
-}
+export const getTmaUser = () => WebApp.initDataUnsafe.user || null;
+export const getTmaStartParam = () => WebApp.initDataUnsafe.start_param || null;
+
+export default WebApp;
