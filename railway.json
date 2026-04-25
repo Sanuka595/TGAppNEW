@@ -6,7 +6,7 @@
     "target": "server"
   },
   "deploy": {
-    "startCommand": "node packages/server/dist/index.js",
+    "startCommand": "node packages/server/dist/src/index.js",
     "healthcheckPath": "/health",
     "healthcheckTimeout": 100,
     "restartPolicyType": "ON_FAILURE"

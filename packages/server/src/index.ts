@@ -38,7 +38,7 @@ app.get('/health', (_req: Request, res: Response) => {
 });
 
 // In production, serve the client static build
-const clientDistPath = path.resolve(__dirname, '../../client/dist');
+const clientDistPath = path.resolve(__dirname, '../../../client/dist');
 if (isProduction && fs.existsSync(clientDistPath)) {
   app.use(express.static(clientDistPath));
 }
