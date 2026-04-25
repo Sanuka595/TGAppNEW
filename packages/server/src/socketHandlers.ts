@@ -24,6 +24,7 @@ export const registerSocketHandlers = (
   socket.on('create_room', ({ player, winCondition }, callback) => {
     activePlayerId = player.id;
     const roomId = roomManager.createRoom(socket.id, player, winCondition);
+    console.log(`Room ${roomId} created by player ${player.id}`);
     socket.join(roomId);
     const room = roomManager.getRoom(roomId);
     if (room !== undefined) io.to(roomId).emit('room_updated', room);
@@ -31,13 +32,16 @@ export const registerSocketHandlers = (
   });
 
   socket.on('join_room', ({ roomId, player }, callback) => {
+    console.log(`Player ${player.id} attempting to join room ${roomId}`);
     activePlayerId = player.id;
     const result = roomManager.joinRoom(socket.id, roomId, player);
     if (!result.success) {
+      console.log(`Join failed for player ${player.id}: ${result.error}`);
       callback({ success: false, error: result.error });
       return;
     }
     socket.join(roomId);
+    console.log(`Player ${player.id} joined room ${roomId}`);
     io.to(roomId).emit('room_updated', result.room);
     callback({ success: true });
   });

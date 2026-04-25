@@ -5,6 +5,7 @@ import Decimal from 'decimal.js';
 
 export const TopBar: React.FC = () => {
   const player = useGameStore((s) => s.player);
+  const roomId = useGameStore((s) => s.roomId);
   
   const formattedBalance = new Decimal(player.balance).toNumber().toLocaleString('ru-RU');
 
@@ -16,9 +17,16 @@ export const TopBar: React.FC = () => {
         </div>
         <div className="flex flex-col">
           <span className="text-[10px] text-white/30 uppercase font-black tracking-widest leading-none mb-1">Перекуп</span>
-          <span className="text-sm font-black truncate max-w-[80px] tracking-tighter uppercase">
-            ID:{player.id.substring(0, 4)}
-          </span>
+          <div className="flex items-center space-x-2">
+            <span className="text-sm font-black truncate max-w-[80px] tracking-tighter uppercase">
+              {player.id.substring(0, 4)}
+            </span>
+            {roomId && (
+              <div className="bg-emerald-500/20 text-emerald-400 text-[10px] px-1.5 py-0.5 rounded-md border border-emerald-500/30 font-mono font-bold animate-pulse">
+                К: {roomId}
+              </div>
+            )}
+          </div>
         </div>
       </div>
       
