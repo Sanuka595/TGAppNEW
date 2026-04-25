@@ -80,7 +80,7 @@ export const useGameStore = create<GameStore>()(
         const newPlayer = {
           ...player,
           balance: newBalance,
-          garage: [...player.garage, car],
+          garage: [...(player.garage ?? []), car],
         };
 
         set((state) => ({
@@ -89,7 +89,7 @@ export const useGameStore = create<GameStore>()(
           market: state.market.filter((c) => c.id !== carId),
         }));
 
-        get().addLog(`Вы купили ${car.brand} ${car.model} за ${car.basePrice}`, 'success');
+        get().addLog(`Вы купили ${car.name} за ${car.basePrice}`, 'success');
 
         if (roomId) {
           socket.emit('sync_action', {
@@ -102,7 +102,7 @@ export const useGameStore = create<GameStore>()(
       },
       sellCar: (carId) => {
         const { player, roomId } = get();
-        const car = player.garage.find((c) => c.id === carId);
+        const car = (player.garage ?? []).find((c) => c.id === carId);
         if (!car) {
           get().addLog('Машина не найдена в гараже!', 'error');
           return;
@@ -115,7 +115,7 @@ export const useGameStore = create<GameStore>()(
         const newPlayer = {
           ...player,
           balance: newBalance,
-          garage: player.garage.filter((c) => c.id !== carId),
+          garage: (player.garage ?? []).filter((c) => c.id !== carId),
         };
 
         set((state) => ({
@@ -123,7 +123,7 @@ export const useGameStore = create<GameStore>()(
           garage: state.garage.filter((c) => c.id !== carId),
         }));
 
-        get().addLog(`Вы продали ${car.brand} ${car.model} за ${car.basePrice}`, 'success');
+        get().addLog(`Вы продали ${car.name} за ${car.basePrice}`, 'success');
 
         if (roomId) {
           socket.emit('sync_action', {
@@ -138,7 +138,7 @@ export const useGameStore = create<GameStore>()(
       rentCar: (_carId) => { /* TODO: Phase 3 */ },
       buyEnergy: () => { /* TODO: Phase 3 */ },
       diagnoseCar: (_carId) => { /* TODO: Phase 3 */ },
-      manualMove: (_steps) => { /* TODO: Phase 3 */ },
+      // manualMove is defined below with full implementation
       updateMarket: (cars) => set({ market: cars }),
       setActiveEvent: (news) => set({ activeEvent: news }),
       setCurrentEvent: (cell) => set({ currentEvent: cell }),
@@ -191,7 +191,8 @@ export const useGameStore = create<GameStore>()(
       },
       processBotTurn: () => { /* TODO: Phase 3 */ },
       manualMove: (steps) => {
-        const { roomId, player, players, currentTurnIndex, energy } = get();
+        const { roomId, player, players, currentTurnIndex } = get();
+        const energy = player.energy;
         if (!roomId) { // Solo mode
           if (energy < 1) { get().addLog('Недостаточно энергии для тактического хода!', 'error'); return; }
           const newPosition = (player.position + steps) % 12;
@@ -219,7 +220,7 @@ export const useGameStore = create<GameStore>()(
       // ── Multiplayer actions ──
       createRoom: (winCondition) => {
         const { player } = get();
-        socket.emit('create_room', { player, winCondition }, (res) => {
+        socket.emit('create_room', { player, winCondition }, (res: { success: boolean; error?: string; roomId?: string }) => {
           if (res.success && res.roomId) {
             set({ roomId: res.roomId, isHost: true, isSoloMode: false });
             get().addLog(`Комната ${res.roomId} создана!`, 'info');
@@ -230,7 +231,7 @@ export const useGameStore = create<GameStore>()(
       },
       joinRoom: (roomId) => {
         const { player } = get();
-        socket.emit('join_room', { roomId, player }, (res) => {
+        socket.emit('join_room', { roomId, player }, (res: { success: boolean; error?: string }) => {
           if (res.success) {
             set({ roomId, isHost: false, isSoloMode: false });
             get().addLog(`Вы присоединились к комнате ${roomId}`, 'info');
@@ -240,33 +241,26 @@ export const useGameStore = create<GameStore>()(
         });
       },
       leaveRoom: () => set({ roomId: null, players: [], isHost: false }),
-      syncRoomState: (roomState) => set({
-        players: roomState.players,
-        market: roomState.market,
-        // Ensure current player's garage is updated from their own state,
-        // as roomState.players might not contain full garage details for all players.
-        // This assumes the client's player object is the source of truth for its own garage.
-        player: {
-          ...get().player,
-          ...roomState.players.find(p => p.id === get().player.id),
-        },
-        // Update garage if it's explicitly provided in the roomState for the current player
-        garage: roomState.players.find(p => p.id === get().player.id)?.garage || get().garage,
-        // If the current player is not in the roomState players list, it means they left or were removed.
-        // In this case, reset their room-specific state.
-        roomId: roomState.players.some(p => p.id === get().player.id) ? roomState.id : null,
-        // If the player is no longer in the room, reset other room-related states
-        isHost: roomState.players.some(p => p.id === get().player.id) ? roomState.hostId === get().player.id : false,
-        currentTurnIndex: roomState.players.some(p => p.id === get().player.id) ? roomState.currentTurnIndex : 0,
-        winCondition: roomState.players.some(p => p.id === get().player.id) ? roomState.winCondition : 0,
-        winnerId: roomState.players.some(p => p.id === get().player.id) ? roomState.winnerId ?? null : null,
-
-        currentTurnIndex: roomState.currentTurnIndex,
-        winCondition: roomState.winCondition,
-        winnerId: roomState.winnerId ?? null,
-        isHost: roomState.hostId === get().player.id,
-        hostId: roomState.hostId,
-      }),
+      syncRoomState: (roomState) => {
+        const myId = get().player.id;
+        const inRoom = roomState.players.some(p => p.id === myId);
+        const me = roomState.players.find(p => p.id === myId);
+        set({
+          players: roomState.players,
+          market: roomState.market,
+          player: {
+            ...get().player,
+            ...me,
+          },
+          garage: me?.garage ?? get().garage,
+          roomId: inRoom ? roomState.id : null,
+          isHost: inRoom ? roomState.hostId === myId : false,
+          currentTurnIndex: inRoom ? roomState.currentTurnIndex : 0,
+          winCondition: inRoom ? roomState.winCondition : 0,
+          winnerId: inRoom ? roomState.winnerId ?? null : null,
+          hostId: roomState.hostId,
+        });
+      },
       handleDiceRollResult: (playerId, diceValue, newPosition) => {
         const { player, players } = get();
         const cell = GAME_MAP.find(c => c.id === newPosition) || null;

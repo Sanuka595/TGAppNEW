@@ -3,7 +3,10 @@
   "compilerOptions": {
     "composite": true,
     "outDir": "dist",
-    "noEmit": false
+    "noEmit": false,
+    "module": "Node16",
+    "moduleResolution": "Node16",
+    "target": "ES2022"
   },
   "include": ["src"],
   "references": [{ "path": "../shared" }]

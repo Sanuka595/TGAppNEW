@@ -19,23 +19,19 @@ FROM base AS shared-build
 COPY packages/shared/ ./packages/shared/
 RUN npm run build -w @tgperekup/shared
 
-# ── Server Build & Run ──────────────────────────────────────────────────────
-FROM shared-build AS server
-COPY packages/server/ ./packages/server/
-RUN npm run build -w @tgperekup/server
-
-# Railway specific: server should listen on PORT env var
-ENV PORT=3000
-EXPOSE 3000
-
-CMD ["node", "packages/server/dist/index.js"]
-
-# ── Client Build (Optional, if used separately) ────────────────────────────
+# ── Client build ────────────────────────────────────────────────────────────
 FROM shared-build AS client-build
 COPY packages/client/ ./packages/client/
 RUN npm run build -w @tgperekup/client
 
-# Client serve (example using nginx)
-FROM nginx:alpine AS client
-COPY --from=client-build /app/packages/client/dist /usr/share/nginx/html
-EXPOSE 80
+# ── Server build (includes client dist for static serving) ──────────────────
+FROM client-build AS server
+COPY packages/server/ ./packages/server/
+RUN npm run build -w @tgperekup/server
+
+# Railway specific: server should listen on PORT env var
+ENV NODE_ENV=production
+ENV PORT=3000
+EXPOSE 3000
+
+CMD ["node", "packages/server/dist/index.js"]
