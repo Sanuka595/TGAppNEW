@@ -12,11 +12,11 @@ export const MainLayout: React.FC<Props> = ({ children }) => {
   const setActiveTab = useUiStore((s) => s.setActiveTab);
 
   return (
-    <div className="flex flex-col h-[100dvh] text-white relative z-10">
+    <div className="flex flex-col h-[100dvh] relative z-10">
       <TopBar />
       
-      <main className="flex-1 overflow-y-auto relative">
-        <div className="p-4 min-h-full">
+      <main className="flex-1 overflow-hidden relative">
+        <div className="p-3 pb-[88px] h-full flex flex-col">
           {children}
         </div>
       </main>

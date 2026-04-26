@@ -18,16 +18,9 @@ export const Button: React.FC<ButtonProps> = ({
 }) => {
   const handleClick = (e: React.MouseEvent<HTMLButtonElement>) => {
     try {
-      if (WebApp.isExpanded) {
-        WebApp.HapticFeedback.impactOccurred(hapticFeedback);
-      }
-    } catch (err) {
-      console.warn('Haptic feedback not available');
-    }
-    
-    if (onClick) {
-      onClick(e);
-    }
+      if (WebApp.isExpanded) WebApp.HapticFeedback.impactOccurred(hapticFeedback);
+    } catch { /* haptic not available outside TMA */ }
+    if (onClick) onClick(e);
   };
 
   const getVariantStyles = () => {
@@ -35,7 +28,7 @@ export const Button: React.FC<ButtonProps> = ({
       case 'primary':
         return 'bg-gradient-to-br from-cyan-400 to-blue-600 text-white shadow-[0_0_15px_rgba(6,182,212,0.4)] border border-cyan-300/30';
       case 'secondary':
-        return 'bg-white/10 text-white border border-white/20 hover:bg-white/20';
+        return 'bg-white/10 border border-white/20 hover:bg-white/20';
       case 'glass':
       default:
         return 'glass-button';

@@ -19,7 +19,7 @@
   --color-neon-blue: #3a7bd5;
   --color-glass-bg: rgba(255, 255, 255, 0.03);
   --color-glass-border: rgba(255, 255, 255, 0.08);
-  
+
   --height-screen: 100dvh;
 }
 
@@ -33,8 +33,7 @@
     --radial-1: rgba(0, 210, 255, 0.08);
     --radial-2: rgba(58, 123, 213, 0.08);
 
-    /* Beautiful, elegant deep gradient */
-    background: 
+    background:
       radial-gradient(circle at 15% 50%, var(--radial-1), transparent 50%),
       radial-gradient(circle at 85% 30%, var(--radial-2), transparent 50%),
       radial-gradient(circle at 50% 100%, rgba(0, 210, 255, 0.05), transparent 50%),
@@ -49,48 +48,94 @@
     width: 100%;
   }
 
+  /* ── Light Theme Variables ─────────────────────────────────────────────── */
   body.light {
     --bg-color: #f1f5f9;
     --text-color: #0f172a;
-    --glass-bg: rgba(255, 255, 255, 0.7);
-    --glass-border: rgba(255, 255, 255, 0.5);
-    --radial-1: rgba(0, 210, 255, 0.15);
-    --radial-2: rgba(58, 123, 213, 0.15);
+    --glass-bg: rgba(255, 255, 255, 0.72);
+    --glass-border: rgba(15, 23, 42, 0.10);
+    --radial-1: rgba(0, 180, 220, 0.14);
+    --radial-2: rgba(58, 123, 213, 0.14);
   }
 
-  /* Force dark text for semi-transparent elements in Light Mode */
+  /* ── Light Theme: black overlays → near-transparent ─────────────────── */
+  body.light .bg-black\/20 { background-color: rgba(15, 23, 42, 0.05); }
+  body.light .bg-black\/30 { background-color: rgba(15, 23, 42, 0.06); }
+  body.light .bg-black\/60 { background-color: rgba(15, 23, 42, 0.40); }
+
+  /* ── Light Theme: white overlays → subtle slate ──────────────────────── */
+  body.light .bg-white\/5  { background-color: rgba(15, 23, 42, 0.04); }
+  body.light .bg-white\/10 { background-color: rgba(15, 23, 42, 0.06); }
+  body.light .bg-white\/20 { background-color: rgba(15, 23, 42, 0.08); }
+
+  /* ── Light Theme: white borders → subtle ────────────────────────────── */
+  body.light .border-white\/5  { border-color: rgba(15, 23, 42, 0.08); }
+  body.light .border-white\/10 { border-color: rgba(15, 23, 42, 0.12); }
+
+  /* ── Light Theme: white/opacity text → readable slate ───────────────── */
+  body.light .text-white\/20,
   body.light .text-white\/30,
-  body.light .text-white\/40,
-  body.light .text-white\/50,
-  body.light .text-white\/60,
-  body.light .text-white\/70,
-  body.light .text-white\/80 {
-    color: #475569;
-  }
+  body.light .text-white\/40 { color: #94a3b8; }
 
+  body.light .text-white\/50,
+  body.light .text-white\/60 { color: #64748b; }
+
+  body.light .text-white\/70,
+  body.light .text-white\/80 { color: #475569; }
+
+  /* ── Light Theme: plain white text → dark  ───────────────────────────── */
+  /* Exclude elements that intentionally keep white text (primary buttons,
+     colored badges, player token) by checking they don't sit inside a
+     gradient-coloured button. */
+  body.light .text-white { color: #1e293b; }
+  /* Primary buttons always keep white label */
+  body.light .from-cyan-400.text-white,
+  body.light .from-cyan-400 .text-white,
+  body.light .bg-emerald-500.text-white,
+  body.light .bg-emerald-500 .text-white { color: #ffffff; }
+
+  /* ── Light Theme: glass panel ────────────────────────────────────────── */
   body.light .glass-panel {
     background: var(--glass-bg);
-    border: 1px solid var(--glass-border);
-    box-shadow: 0 8px 32px 0 rgba(31, 38, 135, 0.08);
+    border-color: var(--glass-border);
+    box-shadow: 0 4px 24px rgba(15, 23, 42, 0.08), 0 1px 4px rgba(15, 23, 42, 0.05);
   }
 
-  /* High-contrast cell labels in Light Mode */
+  /* ── Light Theme: high-contrast board cell labels ────────────────────── */
   body.light .text-emerald-300 { color: #059669; }
-  body.light .text-blue-300 { color: #2563eb; }
-  body.light .text-orange-300 { color: #d97706; }
-  body.light .text-indigo-300 { color: #4f46e5; }
-  body.light .text-purple-300 { color: #7c3aed; }
-  body.light .text-cyan-300 { color: #0891b2; }
-  body.light .text-amber-300 { color: #d97706; }
-  body.light .text-sky-300 { color: #0284c7; }
-  body.light .text-rose-300 { color: #e11d48; }
-  body.light .text-yellow-300 { color: #ca8a04; }
-  body.light .text-teal-300 { color: #0d9488; }
-  body.light .text-red-300 { color: #dc2626; }
-  body.light .text-cyan-400 { color: #0891b2; }
+  body.light .text-blue-300    { color: #2563eb; }
+  body.light .text-orange-300  { color: #c2410c; }
+  body.light .text-indigo-300  { color: #4f46e5; }
+  body.light .text-purple-300  { color: #7c3aed; }
+  body.light .text-cyan-300    { color: #0891b2; }
+  body.light .text-amber-300   { color: #b45309; }
+  body.light .text-sky-300     { color: #0284c7; }
+  body.light .text-rose-300    { color: #e11d48; }
+  body.light .text-yellow-300  { color: #a16207; }
+  body.light .text-teal-300    { color: #0d9488; }
+  body.light .text-red-300     { color: #dc2626; }
+  body.light .text-cyan-400    { color: #0284c7; }
   body.light .text-emerald-400 { color: #059669; }
+  body.light .text-green-400   { color: #16a34a; }
+  body.light .text-red-400     { color: #dc2626; }
+  body.light .text-blue-400    { color: #2563eb; }
+  body.light .text-rose-400    { color: #e11d48; }
+  body.light .text-yellow-400  { color: #a16207; }
 
-  
+  /* ── Light Theme: TopBar ─────────────────────────────────────────────── */
+  body.light .topbar-root {
+    background: rgba(241, 245, 249, 0.88) !important;
+    border-bottom-color: rgba(15, 23, 42, 0.08) !important;
+    backdrop-filter: blur(20px) saturate(180%);
+    -webkit-backdrop-filter: blur(20px) saturate(180%);
+  }
+
+  /* ── Light Theme: bottom navigation pill ────────────────────────────── */
+  body.light .nav-pill-bg {
+    background-color: rgba(14, 165, 233, 0.12) !important;
+    border-color: rgba(14, 165, 233, 0.30) !important;
+  }
+
   #root {
     height: 100%;
     width: 100%;
@@ -106,18 +151,18 @@
     border: 1px solid var(--glass-border);
     box-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.3);
   }
-  
+
   .glass-button {
-    background: linear-gradient(135deg, rgba(0, 210, 255, 0.1) 0%, rgba(58, 123, 213, 0.1) 100%);
+    background: linear-gradient(135deg, rgba(0, 210, 255, 0.10) 0%, rgba(58, 123, 213, 0.10) 100%);
     backdrop-filter: blur(16px);
     border: 1px solid var(--glass-border);
-    box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.1), 0 0 15px rgba(0, 210, 255, 0.15);
+    box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.10), 0 0 15px rgba(0, 210, 255, 0.15);
     color: var(--color-neon-cyan);
     transition: all 0.2s ease;
   }
-  
+
   .glass-button:active {
-    box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.05), 0 0 5px rgba(0, 210, 255, 0.1);
+    box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.05), 0 0 5px rgba(0, 210, 255, 0.10);
   }
 
   .neon-glow {
@@ -125,18 +170,14 @@
   }
 }
 
-/* ── Light theme overrides ───────────────────────────────────────────────── */
-body.light .glass-panel {
-  box-shadow: 0 4px 24px 0 rgba(0, 0, 0, 0.08), 0 1px 4px rgba(0, 0, 0, 0.06);
-}
-
+/* ── Light Theme: glass-button overrides ─────────────────────────────────── */
 body.light .glass-button {
-  background: linear-gradient(135deg, rgba(58, 123, 213, 0.12) 0%, rgba(0, 180, 220, 0.08) 100%);
+  background: linear-gradient(135deg, rgba(58, 123, 213, 0.10) 0%, rgba(0, 180, 220, 0.07) 100%);
   color: var(--color-neon-blue);
-  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.8), 0 0 12px rgba(58, 123, 213, 0.12);
-  border-color: rgba(58, 123, 213, 0.2);
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.80), 0 0 12px rgba(58, 123, 213, 0.10);
+  border-color: rgba(58, 123, 213, 0.20);
 }
 
 body.light .glass-button:active {
-  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.5), 0 0 4px rgba(58, 123, 213, 0.08);
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.50), 0 0 4px rgba(58, 123, 213, 0.08);
 }

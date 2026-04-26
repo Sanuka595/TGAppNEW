@@ -61,7 +61,7 @@ export const RadialBoard: React.FC = () => {
   };
 
   return (
-    <div className="w-full max-w-[min(96vw,420px)] aspect-square mx-auto relative select-none p-2">
+    <div className="w-full max-w-[min(96vw,420px)] max-h-full aspect-square mx-auto relative select-none p-1.5">
       {/* Background Decor - Мягкое свечение под полем */}
       <div className="absolute inset-0 bg-blue-500/5 blur-[80px] rounded-full" />
 

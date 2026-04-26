@@ -46,7 +46,7 @@ export const GarageView: React.FC = () => {
   }
 
   return (
-    <div className="flex flex-col space-y-6 p-5 pb-24 overflow-y-auto h-full scrollbar-hide">
+    <div className="flex flex-col space-y-6 p-5 pb-4 overflow-y-auto h-full scrollbar-hide">
       <div className="flex items-center justify-between px-1">
         <h2 className="text-2xl font-black uppercase tracking-tighter text-white drop-shadow-md">
           Мой Гараж

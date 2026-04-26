@@ -78,21 +78,29 @@ export default function App(): JSX.Element {
       case 'board':
       default:
         return (
-          <div className="flex flex-col items-center justify-center space-y-6 pt-4 h-full">
-            <RadialBoard />
-            
-            {/* Quick Logs Summary */}
-            <div className="w-full max-w-xs bg-black/20 rounded-2xl p-4 border border-white/5 backdrop-blur-sm">
-              <div className="text-[10px] text-white/30 uppercase mb-3 font-bold tracking-widest">События</div>
-              <div className="space-y-2 h-24 overflow-y-auto scrollbar-hide">
+          <div className="flex flex-col items-center gap-3 h-full">
+            {/* Board fills all available flex space */}
+            <div className="flex-1 min-h-0 w-full flex items-center justify-center">
+              <RadialBoard />
+            </div>
+
+            {/* Compact event log — fixed height, never grows */}
+            <div className="w-full max-w-sm shrink-0 glass-panel rounded-2xl px-4 py-3">
+              <div className="text-[9px] text-white/30 uppercase mb-2 font-black tracking-widest">
+                События
+              </div>
+              <div className="space-y-1.5 h-16 overflow-y-auto scrollbar-hide">
                 {logs.length > 0 ? (
                   logs.slice(0, 3).map((log, i) => (
-                    <div key={i} className={`text-xs leading-tight ${log.type === 'error' ? 'text-red-400' : 'text-white/70'}`}>
-                      <span className="opacity-30 mr-2">•</span>{log.text}
+                    <div
+                      key={i}
+                      className={`text-[11px] leading-tight ${log.type === 'error' ? 'text-red-400' : 'text-white/70'}`}
+                    >
+                      <span className="opacity-30 mr-1.5">•</span>{log.text}
                     </div>
                   ))
                 ) : (
-                  <div className="text-xs text-white/20 italic">Ожидание начала игры...</div>
+                  <div className="text-[11px] text-white/20 italic">Ожидание начала игры...</div>
                 )}
               </div>
             </div>

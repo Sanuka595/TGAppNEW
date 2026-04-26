@@ -15,7 +15,7 @@ export const TopBar: React.FC = () => {
   const formattedBalance = new Decimal(player.balance).toNumber().toLocaleString('ru-RU');
 
   return (
-    <div className="bg-black/20 text-white p-4 border-b border-white/5 flex justify-between items-center sticky top-0 z-50 backdrop-blur-lg h-20">
+    <div className="topbar-root bg-black/20 p-4 border-b border-white/5 flex justify-between items-center sticky top-0 z-50 backdrop-blur-lg h-20">
       <div className="flex items-center space-x-3">
         <div className="w-10 h-10 bg-gradient-to-br from-blue-500 to-indigo-600 rounded-2xl flex items-center justify-center shadow-lg border border-white/10">
           <User size={20} className="text-white" />
