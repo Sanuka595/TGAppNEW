@@ -4,6 +4,7 @@ import { Decimal } from 'decimal.js';
 import type { Player, GameNews } from '@tgperekup/shared';
 import { GAME_MAP, calculateCurrentMarketValue, calculateSellPrice, generateCar, calculateCarHealth, calculateRentIncome, type BoardCell, type Car, type CarTier } from '@tgperekup/shared';
 import { tmaStorage } from './storage';
+import { triggerHaptic } from '../lib/tmaProvider';
 import { socket } from '../lib/socket';
 import {
   initialPlayerState,
@@ -27,6 +28,20 @@ const DIAGNOSTICS_COST = 200;
 export interface GameStore extends PlayerSlice, SoloSlice, MultiplayerSlice {
   player: Player;
   executeCellAction: (cell: BoardCell | null) => void;
+  buyCar: (carId: string) => void;
+  sellCar: (carId: string) => void;
+  repairCar: (carId: string, defectId: string, isDiscounted?: boolean) => void;
+  diagnoseCar: (carId: string) => void;
+  diagnoseMarketCar: (carId: string) => void;
+  refreshMarket: () => void;
+  rentCar: (carId: string) => void;
+  buyEnergy: () => void;
+  
+  // Dev tools
+  devAddMoney: (amount: string) => void;
+  devAddEnergy: (amount: number) => void;
+  devTeleport: (cellId: number) => void;
+  devResetTurn: () => void;
 }
 
 // ─── Default player ───────────────────────────────────────────────────────────
@@ -259,7 +274,6 @@ export const useGameStore = create<GameStore>()(
             action: 'diagnoseMarketCar',
             payload: carId,
           });
-        }
         }
       },
       refreshMarket: () => {
