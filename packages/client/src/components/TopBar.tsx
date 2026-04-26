@@ -1,11 +1,13 @@
 import React from 'react';
 import { useGameStore } from '../store/gameStore';
-import { Wallet, Zap, User } from 'lucide-react';
+import { Wallet, Zap, User, Users } from 'lucide-react';
 import Decimal from 'decimal.js';
+import { useUiStore } from '../store/uiStore';
 
 export const TopBar: React.FC = () => {
   const player = useGameStore((s) => s.player);
   const roomId = useGameStore((s) => s.roomId);
+  const setIsMultiplayerOpen = useUiStore((s) => s.setIsCreateRoomModalOpen);
   
   const formattedBalance = new Decimal(player.balance).toNumber().toLocaleString('ru-RU');
 
@@ -28,6 +30,13 @@ export const TopBar: React.FC = () => {
             )}
           </div>
         </div>
+
+        <button 
+          onClick={() => setIsMultiplayerOpen(true)}
+          className="p-2 bg-white/5 rounded-xl border border-white/10 hover:bg-white/10 transition-all active:scale-90"
+        >
+          <Users size={18} className={roomId ? 'text-emerald-400' : 'text-white/40'} />
+        </button>
       </div>
       
       <div className="flex items-center space-x-4">

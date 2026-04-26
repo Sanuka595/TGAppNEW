@@ -9,6 +9,9 @@ export const MultiplayerModal: React.FC = () => {
   const isOpen = useUiStore((s) => s.isCreateRoomModalOpen);
   const setIsOpen = useUiStore((s) => s.setIsCreateRoomModalOpen);
   
+  // Debug log to trace modal state
+  console.log('[MultiplayerModal] isOpen:', isOpen);
+
   const createRoom = useGameStore((s) => s.createRoom);
   const joinRoom = useGameStore((s) => s.joinRoom);
   const leaveRoom = useGameStore((s) => s.leaveRoom);
@@ -17,8 +20,6 @@ export const MultiplayerModal: React.FC = () => {
   const [activeTab, setActiveTab] = useState<'create' | 'join'>('create');
   const [winCondition, setWinCondition] = useState('500000');
   const [joinCode, setJoinCode] = useState('');
-
-  if (!isOpen) return null;
 
   const handleCreate = () => {
     createRoom(parseInt(winCondition) || 500000);
