@@ -1,4 +1,5 @@
 import { create } from 'zustand';
+import { persist, createJSONStorage } from 'zustand/middleware';
 
 export type ActiveTab = 'board' | 'garage' | 'market';
 
@@ -46,7 +47,9 @@ const initialUiState: UiState = {
   theme: 'dark',
 };
 
-export const useUiStore = create<UiState & UiActions>((set) => ({
+export const useUiStore = create<UiState & UiActions>()(
+  persist(
+    (set) => ({
   ...initialUiState,
   setActiveTab: (tab) => set({ activeTab: tab, isGarageOpen: tab === 'garage' }),
   openGarage: () => set({ isGarageOpen: true, activeTab: 'garage' }),
@@ -109,4 +112,11 @@ export const useUiStore = create<UiState & UiActions>((set) => ({
     return isHandled;
   },
   resetUiState: () => set(initialUiState),
-}));
+    }),
+    {
+      name: 'perekup-ui-storage',
+      storage: createJSONStorage(() => localStorage),
+      partialize: (state) => ({ theme: state.theme }),
+    },
+  ),
+);

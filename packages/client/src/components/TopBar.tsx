@@ -3,6 +3,7 @@ import { useGameStore } from '../store/gameStore';
 import { Wallet, Zap, User, Users, Sun, Moon } from 'lucide-react';
 import Decimal from 'decimal.js';
 import { useUiStore } from '../store/uiStore';
+import { triggerHaptic } from '../lib/tmaProvider';
 
 export const TopBar: React.FC = () => {
   const player = useGameStore((s) => s.player);
@@ -40,8 +41,8 @@ export const TopBar: React.FC = () => {
           <Users size={18} className={roomId ? 'text-emerald-400' : 'text-white/40'} />
         </button>
 
-        <button 
-          onClick={toggleTheme}
+        <button
+          onClick={() => { triggerHaptic('selection'); toggleTheme(); }}
           className="p-2 bg-white/5 rounded-xl border border-white/10 hover:bg-white/10 transition-all active:scale-90"
         >
           {theme === 'dark' ? <Sun size={18} className="text-amber-400" /> : <Moon size={18} className="text-indigo-400" />}

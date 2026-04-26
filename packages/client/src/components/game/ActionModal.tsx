@@ -1,8 +1,9 @@
 import React from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { X, ShoppingCart, Info, Wrench, Truck, AlertCircle } from 'lucide-react';
+import { X, ShoppingCart, Info, Wrench, Truck } from 'lucide-react';
 import { useGameStore } from '../../store/gameStore';
 import { Button } from '../ui/Button.js';
+import { triggerHaptic } from '../../lib/tmaProvider';
 
 export const ActionModal: React.FC = () => {
   const { 
@@ -66,11 +67,9 @@ export const ActionModal: React.FC = () => {
           </div>
         );
       case 'repair':
-      case 'special_repair':
+      case 'special_repair': {
         const garage = player.garage || [];
-        const repairableCars = garage.filter(c => c.defects.some(d => !d.isRepaired));
         const isDiscounted = currentEvent.type === 'special_repair';
-        
         return (
           <div className="space-y-4">
             <div className="bg-sky-500/10 border border-sky-500/20 p-4 rounded-2xl mb-4">
@@ -82,16 +81,16 @@ export const ActionModal: React.FC = () => {
               </div>
               <p className="text-sm text-white/60">Здесь можно устранить поломки или провести диагностику скрытых дефектов.</p>
             </div>
-            
+
             <div className="max-h-[30vh] overflow-y-auto space-y-3 pr-1 scrollbar-hide">
               {garage.map(car => (
                 <div key={car.id} className="bg-white/5 rounded-2xl p-4 border border-white/10">
                   <div className="flex justify-between items-center mb-3">
                     <span className="font-bold text-white">{car.name}</span>
-                    <Button 
-                      variant="secondary" 
+                    <Button
+                      variant="secondary"
                       className="h-7 text-[10px] px-3"
-                      onClick={() => diagnoseCar(car.id)}
+                      onClick={() => { triggerHaptic('impact', 'light'); diagnoseCar(car.id); }}
                     >
                       Диагностика ($200)
                     </Button>
@@ -103,10 +102,10 @@ export const ActionModal: React.FC = () => {
                           <span className="text-[11px] text-white/80 font-medium">{defect.name}</span>
                           <span className="text-[9px] text-white/40 uppercase font-black">{defect.severity}</span>
                         </div>
-                        <Button 
-                          variant="primary" 
+                        <Button
+                          variant="primary"
                           className="h-7 text-[10px] px-3"
-                          onClick={() => repairCar(car.id, defect.id, isDiscounted)}
+                          onClick={() => { triggerHaptic('notification', 'success'); repairCar(car.id, defect.id, isDiscounted); }}
                         >
                           ${(isDiscounted ? Number(defect.repairCost) * 0.95 : Number(defect.repairCost)).toFixed(0)}
                         </Button>
@@ -124,7 +123,8 @@ export const ActionModal: React.FC = () => {
             </div>
           </div>
         );
-      case 'rent':
+      }
+      case 'rent': {
         const rentGarage = player.garage || [];
         return (
           <div className="space-y-4">
@@ -135,7 +135,7 @@ export const ActionModal: React.FC = () => {
               </div>
               <p className="text-sm text-white/60">Сдайте свои машины в аренду и получите мгновенную выплату.</p>
             </div>
-            
+
             <div className="max-h-[30vh] overflow-y-auto space-y-3 pr-1 scrollbar-hide">
               {rentGarage.map(car => (
                 <div key={car.id} className="flex justify-between items-center bg-white/5 rounded-2xl p-4 border border-white/10">
@@ -143,9 +143,9 @@ export const ActionModal: React.FC = () => {
                     <div className="font-bold text-white leading-none mb-1">{car.name}</div>
                     <div className="text-[10px] text-white/40 uppercase font-black tracking-widest">{car.tier}</div>
                   </div>
-                  <Button 
+                  <Button
                     disabled={car.isRented}
-                    onClick={() => rentCar(car.id)}
+                    onClick={() => { triggerHaptic('notification', 'success'); rentCar(car.id); }}
                     variant={car.isRented ? 'secondary' : 'primary'}
                     className="h-9 px-4"
                   >
@@ -159,6 +159,7 @@ export const ActionModal: React.FC = () => {
             </div>
           </div>
         );
+      }
       default:
         return (
           <div className="space-y-4">

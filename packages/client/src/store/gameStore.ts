@@ -2,7 +2,7 @@ import { create } from 'zustand';
 import { persist, createJSONStorage } from 'zustand/middleware';
 import { Decimal } from 'decimal.js';
 import type { Player, GameNews } from '@tgperekup/shared';
-import { GAME_MAP, calculateCurrentMarketValue, calculateSellPrice, generateCar, calculateCarHealth, calculateRentIncome, type BoardCell } from '@tgperekup/shared';
+import { GAME_MAP, calculateCurrentMarketValue, calculateSellPrice, generateCar, calculateCarHealth, calculateRentIncome, type BoardCell, type Car, type CarTier } from '@tgperekup/shared';
 import { tmaStorage } from './storage';
 import { socket } from '../lib/socket';
 import {
@@ -17,6 +17,10 @@ import {
   initialMultiplayerState,
   type MultiplayerSlice,
 } from './slices/multiplayerSlice';
+
+// ─── Constants ───────────────────────────────────────────────────────────────
+
+const DIAGNOSTICS_COST = 200;
 
 // ─── Store interface ──────────────────────────────────────────────────────────
 
@@ -154,7 +158,7 @@ export const useGameStore = create<GameStore>()(
         if (!defect || defect.isRepaired) return;
 
         let cost = new Decimal(defect.repairCost);
-        if (isDiscounted) cost = cost.mul(0.95); // 5% discount on Special Repair
+        if (isDiscounted) cost = cost.mul('0.95'); // 5% discount on Special Repair
 
         const balance = new Decimal(player.balance);
         if (balance.lt(cost)) {
@@ -192,7 +196,7 @@ export const useGameStore = create<GameStore>()(
         const car = garage.find(c => c.id === carId);
         if (!car) return;
 
-        const cost = 200; // Standard diagnostics fee
+        const cost = DIAGNOSTICS_COST;
         const balance = new Decimal(player.balance);
         if (balance.lt(cost)) {
           get().addLog('Недостаточно денег на диагностику!', 'error');
@@ -284,28 +288,24 @@ export const useGameStore = create<GameStore>()(
       rollDice: () => {
         const { roomId, player, players, currentTurnIndex, hasRolledThisTurn } = get();
         if (!roomId) {
-          // Allow rolling dice in solo mode if no room is active
-            const diceValue = Math.floor(Math.random() * 6) + 1;
-            const newPosition = (player.position + diceValue) % 12;
-            get().handleDiceRollResult(player.id, diceValue, newPosition);
-            get().addLog(`Вы бросили кубик: ${diceValue}`, 'info');
-            return;
-          }
-          return; // No room, not solo mode
+          // Solo mode: resolve locally
+          const diceValue = Math.floor(Math.random() * 6) + 1;
+          const newPosition = (player.position + diceValue) % 12;
+          get().handleDiceRollResult(player.id, diceValue, newPosition);
+          get().addLog(`Вы бросили кубик: ${diceValue}`, 'info');
+          return;
         }
-        
-        // Check if it's player's turn
+
+        // Multiplayer mode: delegate to server
         const currentPlayer = players[currentTurnIndex];
         if (currentPlayer?.id !== player.id) {
           get().addLog('Сейчас не ваш ход!', 'error');
           return;
         }
-        
         if (hasRolledThisTurn) {
           get().addLog('Вы уже бросили кубик!', 'error');
           return;
         }
-
         socket.emit('dice_roll', { roomId, playerId: player.id });
       },
       // ── Solo actions ──
@@ -326,18 +326,44 @@ export const useGameStore = create<GameStore>()(
       processBotTurn: () => { /* TODO: Phase 3 */ },
       manualMove: (steps) => {
         const { roomId, player, players, currentTurnIndex } = get();
-        const energy = player.energy;
-        if (!roomId) { // Solo mode
-          if (energy < 1) { get().addLog('Недостаточно энергии для тактического хода!', 'error'); return; }
+
+        if (!roomId) {
+          if (player.energy < 1) {
+            get().addLog('Недостаточно энергии для тактического хода!', 'error');
+            return;
+          }
           const newPosition = (player.position + steps) % 12;
-          set((state) => ({ player: { ...state.player, energy: state.player.energy - 1, position: newPosition }, lastDiceRoll: 0, hasRolledThisTurn: true }));
-          get().addLog(`Вы сделали тактический ход на ${steps} клеток.`, 'info'); return;
+          const cell = GAME_MAP.find(c => c.id === newPosition) ?? null;
+          set((state) => ({
+            player: { ...state.player, energy: state.player.energy - 1, position: newPosition },
+            lastDiceRoll: 0,
+            hasRolledThisTurn: true,
+            currentEvent: cell,
+          }));
+          get().executeCellAction(cell);
+          get().addLog(`Тактический ход на ${steps} клеток.`, 'info');
+          return;
         }
-        const currentPlayer = players[currentTurnIndex]; if (currentPlayer?.id !== player.id) { get().addLog('Сейчас не ваш ход!', 'error'); return; }
-        if (energy < 1) { get().addLog('Недостаточно энергии для тактического хода!', 'error'); return; }
+
+        const currentPlayer = players[currentTurnIndex];
+        if (currentPlayer?.id !== player.id) {
+          get().addLog('Сейчас не ваш ход!', 'error');
+          return;
+        }
+        if (player.energy < 1) {
+          get().addLog('Недостаточно энергии для тактического хода!', 'error');
+          return;
+        }
         const newPosition = (player.position + steps) % 12;
-        set((state) => ({ player: { ...state.player, energy: state.player.energy - 1, position: newPosition }, lastDiceRoll: 0, hasRolledThisTurn: true }));
-        get().addLog(`Вы сделали тактический ход на ${steps} клеток.`, 'info');
+        const cell = GAME_MAP.find(c => c.id === newPosition) ?? null;
+        set((state) => ({
+          player: { ...state.player, energy: state.player.energy - 1, position: newPosition },
+          lastDiceRoll: 0,
+          hasRolledThisTurn: true,
+          currentEvent: cell,
+        }));
+        get().executeCellAction(cell);
+        get().addLog(`Тактический ход на ${steps} клеток.`, 'info');
         socket.emit('sync_action', { roomId, playerId: player.id, action: 'manualMove', payload: { steps, newPosition } });
       },
       setActiveQuest: (quest) => set({ activeQuest: quest }),
@@ -406,10 +432,10 @@ export const useGameStore = create<GameStore>()(
       },
       executeCellAction: (cell: BoardCell | null) => {
         if (!cell) return;
-        const { isSoloMode } = get();
 
-        // Car spawning logic
-        let newCars: any[] = [];
+        const ALL_TIERS: CarTier[] = ['Bucket', 'Scrap', 'Business', 'Premium', 'Rarity'];
+        let newCars: Car[] = [];
+
         switch (cell.type) {
           case 'buy_bucket':
             newCars = [generateCar('Bucket'), generateCar('Bucket'), generateCar('Bucket')];
@@ -417,28 +443,28 @@ export const useGameStore = create<GameStore>()(
           case 'buy_scrap':
             newCars = [generateCar('Scrap'), generateCar('Scrap'), generateCar('Scrap')];
             break;
+          case 'buy_business':
+            newCars = [generateCar('Business'), generateCar('Business'), generateCar('Business')];
+            break;
           case 'buy_premium':
             newCars = [generateCar('Premium'), generateCar('Premium')];
             break;
-          case 'buy_random':
-            const tiers: any[] = ['Bucket', 'Scrap', 'Business', 'Premium', 'Rarity'];
-            newCars = [
-              generateCar(tiers[Math.floor(Math.random() * tiers.length)]),
-              generateCar(tiers[Math.floor(Math.random() * tiers.length)]),
-              generateCar(tiers[Math.floor(Math.random() * tiers.length)]),
-            ];
+          case 'buy_random': {
+            const pick = (): CarTier => ALL_TIERS[Math.floor(Math.random() * ALL_TIERS.length)] as CarTier;
+            newCars = [generateCar(pick()), generateCar(pick()), generateCar(pick())];
             break;
+          }
           case 'buy_retro':
             newCars = [generateCar('Rarity')];
+            break;
+          default:
             break;
         }
 
         if (newCars.length > 0) {
           set({ market: newCars });
-          get().addLog(`Рынок обновлен: появилось ${newCars.length} новых лотов.`, 'info');
+          get().addLog(`Рынок обновлен: ${newCars.length} новых лота.`, 'info');
         }
-
-        // TODO: Implement other cell types (repair, race, rent, etc.)
       },
       handleDiceRollResult: (playerId, diceValue, newPosition) => {
         const { player, players } = get();
@@ -461,8 +487,6 @@ export const useGameStore = create<GameStore>()(
         }
       },
       handleRemoteAction: (data) => {
-        // For now, just log remote actions. Full implementation is Phase 3.
-        get().addLog(`[REMOTE ACTION] Player ${data.playerId} performed ${data.action}`, 'info');
         // Example: if a remote player buys a car, update market
         if (data.action === 'buyCar' && typeof data.payload === 'string') {
           set((state) => ({

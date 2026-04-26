@@ -1,6 +1,7 @@
 import React from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useGameStore } from '../../store/gameStore';
+import { triggerHaptic } from '../../lib/tmaProvider';
 
 export const DiceArea: React.FC = () => {
   const {
@@ -40,7 +41,7 @@ export const DiceArea: React.FC = () => {
             initial={{ scale: 0.8, opacity: 0 }}
             animate={{ scale: 1, opacity: 1 }}
             whileTap={{ scale: 0.95 }}
-            onClick={() => passTurn()}
+            onClick={() => { triggerHaptic('impact', 'light'); passTurn(); }}
             className="w-20 h-20 sm:w-24 sm:h-24 rounded-full flex flex-col items-center justify-center bg-rose-500/10 backdrop-blur-xl border border-rose-400/30 text-rose-300 shadow-[inset_0_0_20px_rgba(244,63,94,0.2),_0_0_20px_rgba(244,63,94,0.3)] transition-all overflow-hidden relative group"
           >
             <div className="absolute inset-0 bg-rose-400/10 opacity-0 group-hover:opacity-100 transition-opacity" />
@@ -51,7 +52,7 @@ export const DiceArea: React.FC = () => {
           <motion.button
             key="dice-btn"
             whileTap={canRoll ? { scale: 0.9, y: 2 } : {}}
-            onClick={() => rollDice()}
+            onClick={() => { if (canRoll) { triggerHaptic('impact', 'heavy'); rollDice(); } }}
             disabled={!canRoll}
             className={`
               w-20 h-20 sm:w-24 sm:h-24 rounded-full flex items-center justify-center text-4xl sm:text-5xl font-black

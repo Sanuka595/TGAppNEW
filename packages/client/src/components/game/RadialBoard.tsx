@@ -7,6 +7,7 @@ import {
 import { GAME_MAP, type CellType } from '@tgperekup/shared';
 import { useGameStore } from '../../store/gameStore';
 import { DiceArea } from './DiceArea';
+import { triggerHaptic } from '../../lib/tmaProvider';
 
 const GRID_POSITIONS: Record<number, { row: number; col: number }> = {
   0: { row: 1, col: 1 }, 1: { row: 1, col: 2 }, 2: { row: 1, col: 3 }, 3: { row: 1, col: 4 },
@@ -53,10 +54,9 @@ export const RadialBoard: React.FC = () => {
 
   const handleCellClick = (cellId: number) => {
     if (!canUseEnergy) return;
-    // Calculate how many steps forward this cell is
     const steps = (cellId - localPlayer.position + 12) % 12;
-    if (steps === 0) return; // Cannot move to current cell
-    
+    if (steps === 0) return;
+    triggerHaptic('impact', 'medium');
     manualMove(steps);
   };
 

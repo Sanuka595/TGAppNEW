@@ -4,6 +4,7 @@ import { ShoppingBag, Search, ShieldAlert, Tag, Car, TrendingUp } from 'lucide-r
 import { useGameStore } from '../../store/gameStore';
 import { type CarTier, calculateSellPrice, calculateCurrentMarketValue } from '@tgperekup/shared';
 import { Button } from '../ui/Button.js';
+import { triggerHaptic } from '../../lib/tmaProvider';
 
 const TIER_COLORS: Record<CarTier, string> = {
   Bucket: 'text-gray-400',
@@ -128,10 +129,10 @@ export const MarketView: React.FC = () => {
               </p>
             </div>
 
-            <Button 
-              className="w-full mt-2" 
+            <Button
+              className="w-full mt-2"
               variant="primary"
-              onClick={() => buyCar(car.id)}
+              onClick={() => { triggerHaptic('notification', 'success'); buyCar(car.id); }}
             >
               Выкупить лот
             </Button>

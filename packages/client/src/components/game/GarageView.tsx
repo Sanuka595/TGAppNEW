@@ -2,8 +2,7 @@ import React from 'react';
 import { motion } from 'framer-motion';
 import { Car as CarIcon, ShieldCheck, Banknote } from 'lucide-react';
 import { useGameStore } from '../../store/gameStore';
-import { type CarTier } from '@tgperekup/shared';
-import { calculateSellPrice } from '@tgperekup/shared';
+import { type CarTier, calculateSellPrice } from '@tgperekup/shared';
 import { Button } from '../ui/Button.js';
 
 const TIER_CONFIG: Record<CarTier, { color: string; label: string }> = {
@@ -16,6 +15,7 @@ const TIER_CONFIG: Record<CarTier, { color: string; label: string }> = {
 
 export const GarageView: React.FC = () => {
   const garage = useGameStore((s) => s.player.garage) || [];
+  const activeEvent = useGameStore((s) => s.activeEvent);
 
   if (garage.length === 0) {
     return (
@@ -58,7 +58,7 @@ export const GarageView: React.FC = () => {
 
       <div className="grid grid-cols-1 gap-4">
         {garage.map((car, index) => {
-          const sellPrice = calculateSellPrice(car).toNumber();
+          const sellPrice = calculateSellPrice(car, activeEvent).toNumber();
           const pnl = sellPrice - Number(car.boughtFor || 0);
           const isProfit = pnl >= 0;
 

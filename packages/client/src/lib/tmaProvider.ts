@@ -22,8 +22,8 @@ export const triggerHaptic = (
     } else {
       WebApp.HapticFeedback.selectionChanged();
     }
-  } catch (e) {
-    console.debug('Haptic feedback not supported in this environment');
+  } catch {
+    // Haptic not available outside TMA
   }
 };
 
@@ -88,12 +88,10 @@ export const initTma = () => {
   WebApp.expand();
   
   try {
-    // @ts-ignore - Some older versions of @twa-dev/sdk might not have this in types
-    if (WebApp.enableVerticalSwipes) {
-      WebApp.enableVerticalSwipes();
-    }
-  } catch (e) {
-    console.debug('enableVerticalSwipes not supported');
+    const wa = WebApp as typeof WebApp & { enableVerticalSwipes?: () => void };
+    if (wa.enableVerticalSwipes) wa.enableVerticalSwipes();
+  } catch {
+    // Not supported in this TMA version
   }
   
   // Set theme-based colors
