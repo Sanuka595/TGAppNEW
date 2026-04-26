@@ -75,27 +75,23 @@ setInterval(() => {
 const BOT_TOKEN = process.env['TELEGRAM_BOT_TOKEN'];
 
 if (BOT_TOKEN) {
-  // Debug: show partial token info (safe)
-  const maskedToken = `${BOT_TOKEN.substring(0, 4)}...${BOT_TOKEN.substring(BOT_TOKEN.length - 4)}`;
-  console.log(`[DEBUG] Token Length: ${BOT_TOKEN.length}, Pattern: ${maskedToken}`);
+  const tokenPrefix = BOT_TOKEN.substring(0, 4);
+  console.log(`[AUTH] Starting bot with token prefix: ${tokenPrefix}... (Length: ${BOT_TOKEN.length})`);
 
-  const bot = new TelegramBot(BOT_TOKEN, { polling: false }); 
+  const bot = new TelegramBot(BOT_TOKEN, { polling: true });
 
-  // Ensure only one bot instance is polling and clear any hanging webhooks
   bot.deleteWebHook()
     .then(() => {
-      console.log('Telegram webhook cleared, starting polling...');
-      return bot.startPolling();
+      console.log('Telegram webhook cleared.');
+      return bot.getMe();
     })
-    .then(() => {
-      bot.getMe().then((me) => {
-        console.log(`Bot @${me.username} is running`);
-      });
+    .then((me) => {
+      console.log(`✅ Bot @${me.username} is authenticated and running`);
     })
     .catch(err => {
-      console.error('Bot initialization error:', err.message);
-      if (err.message.includes('409')) {
-        console.error('CRITICAL: Bot conflict. Stop all other instances of this bot.');
+      console.error('❌ Bot error:', err.message);
+      if (err.message.includes('401')) {
+        console.error('CRITICAL: Token is invalid (401). Check TELEGRAM_BOT_TOKEN variable.');
       }
     });
 
