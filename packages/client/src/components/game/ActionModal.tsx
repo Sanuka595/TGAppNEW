@@ -5,6 +5,7 @@ import { useGameStore } from '../../store/gameStore';
 import { Button } from '../ui/Button.js';
 import { triggerHaptic } from '../../lib/tmaProvider';
 import { Decimal } from 'decimal.js';
+import { useUiStore } from '../../store/uiStore';
 
 export const ActionModal: React.FC = () => {
   const {
@@ -22,6 +23,7 @@ export const ActionModal: React.FC = () => {
 
   const [raceBet, setRaceBet] = useState(500);
   const [raceTargetId, setRaceTargetId] = useState('');
+  const setActiveTab = useUiStore((s) => s.setActiveTab);
 
   if (!currentEvent) return null;
 
@@ -47,7 +49,7 @@ export const ActionModal: React.FC = () => {
               <p className="text-sm text-white/60">Вы находитесь на клетке "{currentEvent.name}". Здесь можно выкупить новые автомобили для своего гаража.</p>
             </div>
             <Button 
-              onClick={handleClose}
+              onClick={() => { handleClose(); setActiveTab('market'); }}
               variant="primary"
               className="w-full mt-2"
             >
@@ -63,14 +65,14 @@ export const ActionModal: React.FC = () => {
                 <Info className="text-blue-400" size={20} />
                 <h3 className="font-bold text-white uppercase tracking-tighter">Продажа авто</h3>
               </div>
-              <p className="text-sm text-white/60">На клетке "{currentEvent.name}" вы можете выгодно продать свои автомобили. Перейдите в гараж, чтобы выбрать машину на продажу.</p>
+              <p className="text-sm text-white/60">На клетке "{currentEvent.name}" вы можете выгодно продать свои автомобили. Перейдите на рынок, чтобы выбрать машину на продажу.</p>
             </div>
             <Button 
-              onClick={handleClose}
+              onClick={() => { handleClose(); setActiveTab('market'); }}
               variant="primary"
               className="w-full mt-2"
             >
-              Ок
+              Перейти к продажам
             </Button>
           </div>
         );
