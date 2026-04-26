@@ -32,4 +32,5 @@ export {
 
 export * from './carDatabase.js';
 export * from './defectDatabase.js';
-export { generateCar } from './businessLogic.js';
+export * from './newsDatabase.js';
+export * from './businessLogic.js';

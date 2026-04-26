@@ -6,6 +6,7 @@ export const GameNewsSchema = z.object({
   id: z.string(),
   title: z.string(),
   description: z.string(),
+  icon: z.string(),
   effects: z.object({
     tierMultipliers: z.record(z.string(), z.number()),
     modelMultipliers: z.record(z.string(), z.number()),

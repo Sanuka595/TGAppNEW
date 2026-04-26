@@ -1,6 +1,6 @@
 import React from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { X, ShoppingCart, Info, Wrench, Truck } from 'lucide-react';
+import { X, ShoppingCart, Info, Wrench, Truck, Trophy, Flag } from 'lucide-react';
 import { useGameStore } from '../../store/gameStore';
 import { Button } from '../ui/Button.js';
 import { triggerHaptic } from '../../lib/tmaProvider';
@@ -12,7 +12,8 @@ export const ActionModal: React.FC = () => {
     player, 
     repairCar, 
     rentCar, 
-    diagnoseCar 
+    diagnoseCar,
+    startRace
   } = useGameStore();
 
   if (!currentEvent) return null;
@@ -157,6 +158,32 @@ export const ActionModal: React.FC = () => {
                 <div className="text-center py-8 text-white/20 uppercase font-black text-xs">Нет машин для аренды</div>
               )}
             </div>
+          </div>
+        );
+      }
+      case 'race': {
+        const hasCars = (player.garage || []).length > 0;
+        return (
+          <div className="space-y-4">
+            <div className="bg-rose-500/10 border border-rose-500/20 p-4 rounded-2xl mb-4">
+              <div className="flex items-center space-x-3 mb-2">
+                <Trophy className="text-rose-400" size={20} />
+                <h3 className="font-bold text-white uppercase tracking-tighter">Уличная гонка</h3>
+              </div>
+              <p className="text-sm text-white/60">Испытайте свою удачу и техническое состояние авто! Ставка: $500. Победа удвоит ставку, поражение — заберет её.</p>
+            </div>
+            
+            <Button
+              disabled={!hasCars || Number(player.balance) < 500}
+              onClick={() => { triggerHaptic('impact', 'heavy'); startRace(500); handleClose(); }}
+              variant="primary"
+              className="w-full py-4 rounded-2xl flex items-center justify-center space-x-2"
+            >
+              <Trophy size={18} />
+              <span>Заехать ($500)</span>
+            </Button>
+            {!hasCars && <p className="text-[10px] text-rose-400 text-center font-bold uppercase">Нужна машина в гараже!</p>}
+            {hasCars && Number(player.balance) < 500 && <p className="text-[10px] text-rose-400 text-center font-bold uppercase">Недостаточно денег!</p>}
           </div>
         );
       }

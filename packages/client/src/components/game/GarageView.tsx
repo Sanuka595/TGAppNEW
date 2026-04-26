@@ -56,6 +56,30 @@ export const GarageView: React.FC = () => {
         </span>
       </div>
 
+      {activeEvent && (
+        <motion.div
+          initial={{ opacity: 0, scale: 0.95 }}
+          animate={{ opacity: 1, scale: 1 }}
+          className="mx-1 p-4 rounded-3xl bg-blue-500/10 border border-blue-500/20 relative overflow-hidden group backdrop-blur-sm"
+        >
+          <div className="absolute -right-4 -bottom-4 p-2 opacity-5 group-hover:opacity-10 transition-opacity">
+            <CarIcon size={80} className="text-blue-400" />
+          </div>
+          <div className="flex items-center space-x-3 relative z-10">
+            <div className="text-3xl bg-blue-500/20 w-12 h-12 rounded-2xl flex items-center justify-center border border-blue-500/30">
+              {activeEvent.icon}
+            </div>
+            <div>
+              <h4 className="text-blue-400 text-xs font-black uppercase tracking-widest mb-0.5">Состояние рынка</h4>
+              <h3 className="text-white font-bold text-sm">{activeEvent.title}</h3>
+            </div>
+          </div>
+          <p className="mt-2 text-xs text-white/50 leading-relaxed relative z-10 italic">
+            "{activeEvent.description}"
+          </p>
+        </motion.div>
+      )}
+
       <div className="grid grid-cols-1 gap-4">
         {garage.map((car, index) => {
           const sellPrice = calculateSellPrice(car, activeEvent).toNumber();

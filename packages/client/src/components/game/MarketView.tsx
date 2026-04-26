@@ -68,6 +68,30 @@ export const MarketView: React.FC = () => {
         </div>
       </div>
       
+      {activeEvent && (
+        <motion.div
+          initial={{ opacity: 0, x: -20 }}
+          animate={{ opacity: 1, x: 0 }}
+          className="mx-1 p-4 rounded-3xl bg-amber-500/10 border border-amber-500/20 relative overflow-hidden group"
+        >
+          <div className="absolute top-0 right-0 p-2 opacity-20 group-hover:scale-125 transition-transform">
+            <TrendingUp size={48} className="text-amber-500" />
+          </div>
+          <div className="flex items-center space-x-3 relative z-10">
+            <div className="text-3xl bg-amber-500/20 w-12 h-12 rounded-2xl flex items-center justify-center border border-amber-500/30">
+              {activeEvent.icon}
+            </div>
+            <div>
+              <h4 className="text-amber-400 text-xs font-black uppercase tracking-widest mb-0.5">Рыночное событие</h4>
+              <h3 className="text-white font-bold text-sm">{activeEvent.title}</h3>
+            </div>
+          </div>
+          <p className="mt-2 text-xs text-white/60 leading-relaxed relative z-10">
+            {activeEvent.description}
+          </p>
+        </motion.div>
+      )}
+      
       <div className="grid grid-cols-1 gap-5">
         {market.map((car, index) => {
           // BIZ:DEAL_ANALYZER Logic

@@ -2,7 +2,7 @@ import { create } from 'zustand';
 import { persist, createJSONStorage } from 'zustand/middleware';
 import { Decimal } from 'decimal.js';
 import type { Player, GameNews } from '@tgperekup/shared';
-import { GAME_MAP, calculateCurrentMarketValue, calculateSellPrice, generateCar, calculateCarHealth, calculateRentIncome, type BoardCell, type Car, type CarTier } from '@tgperekup/shared';
+import { GAME_MAP, NEWS_DB, calculateCurrentMarketValue, calculateSellPrice, generateCar, calculateCarHealth, calculateRentIncome, type BoardCell, type Car, type CarTier } from '@tgperekup/shared';
 import { tmaStorage } from './storage';
 import { triggerHaptic } from '../lib/tmaProvider';
 import { socket } from '../lib/socket';
@@ -34,7 +34,9 @@ export interface GameStore extends PlayerSlice, SoloSlice, MultiplayerSlice {
   diagnoseCar: (carId: string) => void;
   diagnoseMarketCar: (carId: string) => void;
   refreshMarket: () => void;
+  updateNews: (forcedNews?: GameNews) => void;
   rentCar: (carId: string) => void;
+  startRace: (bet: number) => void;
   buyEnergy: () => void;
   
   // Dev tools
@@ -314,6 +316,25 @@ export const useGameStore = create<GameStore>()(
           });
         }
       },
+      updateNews: (forcedNews) => {
+        const { roomId, player, isHost } = get();
+        const news = forcedNews || NEWS_DB[Math.floor(Math.random() * NEWS_DB.length)];
+        
+        if (!news) return;
+
+        set({ activeEvent: news });
+        get().addLog(`[НОВОСТИ] ${news.title}: ${news.description}`, 'info');
+        triggerHaptic('notification', 'info' as any);
+
+        if (roomId && isHost) {
+          socket.emit('sync_action', {
+            roomId,
+            playerId: player.id,
+            action: 'newsUpdate',
+            payload: news,
+          });
+        }
+      },
       rentCar: (carId) => {
         const { player, roomId } = get();
         const garage = player.garage ?? [];
@@ -340,6 +361,48 @@ export const useGameStore = create<GameStore>()(
             playerId: player.id,
             action: 'rentCar',
             payload: carId,
+          });
+        }
+      },
+      startRace: (bet) => {
+        const { player, garage, roomId } = get();
+        if (garage.length === 0) {
+          get().addLog('Для гонки нужна хотя бы одна машина в гараже!', 'error');
+          return;
+        }
+        
+        if (new Decimal(player.balance).lt(bet)) {
+          get().addLog('Недостаточно денег для ставки!', 'error');
+          return;
+        }
+
+        // Pick best car automatically for now
+        const bestCar = [...garage].sort((a, b) => b.health - a.health)[0];
+        if (!bestCar) return;
+
+        const tierMults: Record<CarTier, number> = {
+          Bucket: 0.5, Scrap: 0.7, Business: 1.0, Premium: 1.3, Rarity: 1.6
+        };
+        const winChance = (bestCar.health / 100) * tierMults[bestCar.tier];
+        const won = Math.random() < winChance;
+
+        if (won) {
+          const reward = bet * 2;
+          set((s) => ({ player: { ...s.player, balance: new Decimal(s.player.balance).add(reward).toFixed(0) } }));
+          get().addLog(`🏎️ ПОБЕДА! Ваш ${bestCar.name} пришел первым. Выигрыш: $${reward}`, 'success');
+          triggerHaptic('notification', 'success');
+        } else {
+          set((s) => ({ player: { ...s.player, balance: new Decimal(s.player.balance).sub(bet).toFixed(0) } }));
+          get().addLog(`🏎️ Поражение! ${bestCar.name} не вытянул. Потеряно: $${bet}`, 'error');
+          triggerHaptic('notification', 'error');
+        }
+
+        if (roomId) {
+          socket.emit('sync_action', {
+            roomId,
+            playerId: player.id,
+            action: 'raceResults',
+            payload: { winnerId: won ? player.id : 'bot', loserId: won ? 'bot' : player.id, bet }
           });
         }
       },
@@ -548,6 +611,12 @@ export const useGameStore = create<GameStore>()(
           case 'buy_retro':
             newCars = [generateCar('Rarity')];
             break;
+          case 'race':
+            get().addLog('Вы на клетке гонок! Нажмите "Заехать", чтобы испытать удачу.', 'info');
+            break;
+          case 'rent':
+            get().addLog('Клетка проката. Вы можете сдать машину и получить пассивный доход.', 'info');
+            break;
           default:
             break;
         }
@@ -568,6 +637,23 @@ export const useGameStore = create<GameStore>()(
             hasRolledThisTurn: true,
             currentEvent: cell,
           });
+
+          // Random encounters (15% chance)
+          if (Math.random() < 0.15) {
+             const isBad = Math.random() > 0.5;
+             if (isBad) {
+                const fine = 100 + Math.floor(Math.random() * 200);
+                set((s) => ({ player: { ...s.player, balance: Decimal.max(0, new Decimal(s.player.balance).sub(fine)).toFixed(0) } }));
+                get().addLog(`🚓 ГАИ! Штраф за превышение: $${fine}`, 'error');
+                triggerHaptic('notification', 'error');
+             } else {
+                const bonus = 50 + Math.floor(Math.random() * 150);
+                set((s) => ({ player: { ...s.player, balance: new Decimal(s.player.balance).add(bonus).toFixed(0) } }));
+                get().addLog(`🍀 Удача! Нашли кошелек на обочине: +$${bonus}`, 'success');
+                triggerHaptic('notification', 'success');
+             }
+          }
+
           // Execute cell action immediately in solo/host mode
           get().executeCellAction(cell);
         } else {
@@ -608,14 +694,30 @@ export const useGameStore = create<GameStore>()(
         }
       },
       passTurn: () => {
-        const { roomId, player, players, currentTurnIndex } = get();
-        if (!roomId) return;
+        const { roomId, player, players, currentTurnIndex, totalTurns } = get();
+        if (!roomId) {
+          // Solo mode turn passing
+          const nextTurns = (totalTurns || 0) + 1;
+          set({ totalTurns: nextTurns, hasRolledThisTurn: false });
+          
+          // Every 5 turns, update news
+          if (nextTurns % 5 === 0) {
+            get().updateNews();
+          }
+          return;
+        }
 
         const currentPlayer = players[currentTurnIndex];
         if (currentPlayer?.id !== player.id) {
           get().addLog('Сейчас не ваш ход!', 'error');
           return;
         }
+
+        // Host in multiplayer also triggers news updates
+        if (get().isHost && (totalTurns + 1) % 5 === 0) {
+           get().updateNews();
+        }
+
         socket.emit('pass_turn', { roomId, playerId: player.id });
       },
       setActiveRace: (race) => set({ activeRace: race }),
