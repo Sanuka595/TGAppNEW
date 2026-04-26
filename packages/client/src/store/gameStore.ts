@@ -2,7 +2,7 @@ import { create } from 'zustand';
 import { persist, createJSONStorage } from 'zustand/middleware';
 import { Decimal } from 'decimal.js';
 import type { Player, GameNews } from '@tgperekup/shared';
-import { GAME_MAP, calculateCurrentMarketValue, calculateSellPrice } from '@tgperekup/shared';
+import { GAME_MAP, calculateCurrentMarketValue, calculateSellPrice, generateCar, calculateCarHealth, calculateRentIncome, type BoardCell } from '@tgperekup/shared';
 import { tmaStorage } from './storage';
 import { socket } from '../lib/socket';
 import {
@@ -22,6 +22,7 @@ import {
 
 export interface GameStore extends PlayerSlice, SoloSlice, MultiplayerSlice {
   player: Player;
+  executeCellAction: (cell: BoardCell | null) => void;
 }
 
 // ─── Default player ───────────────────────────────────────────────────────────
@@ -144,10 +145,135 @@ export const useGameStore = create<GameStore>()(
           });
         }
       },
-      repairCar: (_carId, _defectId, _isDiscounted) => { /* TODO: Phase 3 */ },
-      rentCar: (_carId) => { /* TODO: Phase 3 */ },
-      buyEnergy: () => { /* TODO: Phase 3 */ },
-      diagnoseCar: (_carId) => { /* TODO: Phase 3 */ },
+      repairCar: (carId, defectId, isDiscounted) => {
+        const { player, roomId } = get();
+        const garage = player.garage ?? [];
+        const car = garage.find(c => c.id === carId);
+        if (!car) return;
+        const defect = car.defects.find(d => d.id === defectId);
+        if (!defect || defect.isRepaired) return;
+
+        let cost = new Decimal(defect.repairCost);
+        if (isDiscounted) cost = cost.mul(0.95); // 5% discount on Special Repair
+
+        const balance = new Decimal(player.balance);
+        if (balance.lt(cost)) {
+          get().addLog('Недостаточно денег на ремонт!', 'error');
+          return;
+        }
+
+        const newBalance = balance.sub(cost).toFixed(0);
+        const newDefects = car.defects.map(d => 
+          d.id === defectId ? { ...d, isRepaired: true } : d
+        );
+        const newHealth = calculateCarHealth(newDefects);
+        const newCar = { ...car, defects: newDefects, health: newHealth };
+
+        const newGarage = garage.map(c => c.id === carId ? newCar : c);
+
+        set((state) => ({
+          player: { ...state.player, balance: newBalance, garage: newGarage },
+        }));
+
+        get().addLog(`Отремонтировано: ${defect.name} за $${cost.toFixed(0)}`, 'success');
+
+        if (roomId) {
+          socket.emit('sync_action', {
+            roomId,
+            playerId: player.id,
+            action: 'repairCar',
+            payload: { carId, defectId, isDiscounted },
+          });
+        }
+      },
+      diagnoseCar: (carId) => {
+        const { player, roomId } = get();
+        const garage = player.garage ?? [];
+        const car = garage.find(c => c.id === carId);
+        if (!car) return;
+
+        const cost = 200; // Standard diagnostics fee
+        const balance = new Decimal(player.balance);
+        if (balance.lt(cost)) {
+          get().addLog('Недостаточно денег на диагностику!', 'error');
+          return;
+        }
+
+        const newBalance = balance.sub(cost).toFixed(0);
+        const newDefects = car.defects.map(d => ({ ...d, isHidden: false }));
+        const newCar = { ...car, defects: newDefects };
+        const newGarage = garage.map(c => c.id === carId ? newCar : c);
+
+        set((state) => ({
+          player: { ...state.player, balance: newBalance, garage: newGarage },
+        }));
+
+        get().addLog(`Диагностика ${car.name} завершена. Скрытые дефекты обнаружены!`, 'success');
+
+        if (roomId) {
+          socket.emit('sync_action', {
+            roomId,
+            playerId: player.id,
+            action: 'diagnoseCar',
+            payload: carId,
+          });
+        }
+      },
+      rentCar: (carId) => {
+        const { player, roomId } = get();
+        const garage = player.garage ?? [];
+        const car = garage.find(c => c.id === carId);
+        if (!car) return;
+        if (car.isRented) {
+          get().addLog('Машина уже сдана в прокат в этом ходу!', 'error');
+          return;
+        }
+
+        const income = calculateRentIncome(car.tier);
+        const newBalance = new Decimal(player.balance).add(income).toFixed(0);
+        const newGarage = garage.map(c => c.id === carId ? { ...c, isRented: true } : c);
+
+        set((state) => ({
+          player: { ...state.player, balance: newBalance, garage: newGarage },
+        }));
+
+        get().addLog(`Сдано в прокат: ${car.name}. Получено $${income.toFixed(0)}`, 'success');
+
+        if (roomId) {
+          socket.emit('sync_action', {
+            roomId,
+            playerId: player.id,
+            action: 'rentCar',
+            payload: carId,
+          });
+        }
+      },
+      buyEnergy: () => {
+        const { player, roomId } = get();
+        if (player.energy >= 3) {
+          get().addLog('Энергия уже на максимуме!', 'error');
+          return;
+        }
+        const cost = 500;
+        const balance = new Decimal(player.balance);
+        if (balance.lt(cost)) {
+          get().addLog('Недостаточно денег для покупки энергии!', 'error');
+          return;
+        }
+        const newBalance = balance.sub(cost).toFixed(0);
+        set((state) => ({
+          player: { ...state.player, balance: newBalance, energy: state.player.energy + 1 },
+        }));
+        get().addLog('Куплена 1 ед. энергии.', 'success');
+        if (roomId) {
+          socket.emit('sync_action', {
+            roomId,
+            playerId: player.id,
+            action: 'buyEnergy',
+            payload: null,
+          });
+        }
+      },
       // manualMove is defined below with full implementation
       updateMarket: (cars) => set({ market: cars }),
       setActiveEvent: (news) => set({ activeEvent: news }),
@@ -280,6 +406,42 @@ export const useGameStore = create<GameStore>()(
           lastDiceRoll: turnChangedToMe ? 0 : state.lastDiceRoll,
         }));
       },
+      executeCellAction: (cell: BoardCell | null) => {
+        if (!cell) return;
+        const { isSoloMode } = get();
+
+        // Car spawning logic
+        let newCars: any[] = [];
+        switch (cell.type) {
+          case 'buy_bucket':
+            newCars = [generateCar('Bucket'), generateCar('Bucket'), generateCar('Bucket')];
+            break;
+          case 'buy_scrap':
+            newCars = [generateCar('Scrap'), generateCar('Scrap'), generateCar('Scrap')];
+            break;
+          case 'buy_premium':
+            newCars = [generateCar('Premium'), generateCar('Premium')];
+            break;
+          case 'buy_random':
+            const tiers: any[] = ['Bucket', 'Scrap', 'Business', 'Premium', 'Rarity'];
+            newCars = [
+              generateCar(tiers[Math.floor(Math.random() * tiers.length)]),
+              generateCar(tiers[Math.floor(Math.random() * tiers.length)]),
+              generateCar(tiers[Math.floor(Math.random() * tiers.length)]),
+            ];
+            break;
+          case 'buy_retro':
+            newCars = [generateCar('Rarity')];
+            break;
+        }
+
+        if (newCars.length > 0) {
+          set({ market: newCars });
+          get().addLog(`Рынок обновлен: появилось ${newCars.length} новых лотов.`, 'info');
+        }
+
+        // TODO: Implement other cell types (repair, race, rent, etc.)
+      },
       handleDiceRollResult: (playerId, diceValue, newPosition) => {
         const { player, players } = get();
         const cell = GAME_MAP.find(c => c.id === newPosition) || null;
@@ -291,6 +453,8 @@ export const useGameStore = create<GameStore>()(
             hasRolledThisTurn: true,
             currentEvent: cell,
           });
+          // Execute cell action immediately in solo/host mode
+          get().executeCellAction(cell);
         } else {
           set({
             players: players.map(p => p.id === playerId ? { ...p, position: newPosition } : p),

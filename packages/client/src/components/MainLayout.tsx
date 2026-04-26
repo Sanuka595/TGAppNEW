@@ -12,7 +12,7 @@ export const MainLayout: React.FC<Props> = ({ children }) => {
   const setActiveTab = useUiStore((s) => s.setActiveTab);
 
   return (
-    <div className="flex flex-col h-screen overflow-hidden bg-tg-bg text-tg-text">
+    <div className="flex flex-col h-screen overflow-hidden text-white relative z-10">
       <TopBar />
       
       <main className="flex-1 overflow-y-auto relative">

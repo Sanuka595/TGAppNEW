@@ -26,7 +26,10 @@ export {
   applyNewsEffects,
   calculateCurrentMarketValue,
   calculateSellPrice,
-  calculateOwnershipTax,
   calculateRentIncome,
   generateRepairCost,
 } from './businessLogic.js';
+
+export * from './carDatabase.js';
+export * from './defectDatabase.js';
+export { generateCar } from './businessLogic.js';

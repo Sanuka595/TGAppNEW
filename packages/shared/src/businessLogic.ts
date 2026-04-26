@@ -170,3 +170,77 @@ export function generateRepairCost(
   const base = min + Math.floor(Math.random() * (max - min + 1));
   return new Decimal(base).mul(tier === 'Premium' || tier === 'Rarity' ? 2 : 1);
 }
+
+import { CAR_MODELS_DB } from './carDatabase.js';
+import { DEFECTS_DB } from './defectDatabase.js';
+
+/**
+ * Generates a random integer in [min, max].
+ */
+function randomInt(min: number, max: number): number {
+  return Math.floor(Math.random() * (max - min + 1)) + min;
+}
+
+/**
+ * Randomly picks N unique elements from an array.
+ */
+function pickRandomN<T>(arr: T[], n: number): T[] {
+  const shuffled = [...arr].sort(() => 0.5 - Math.random());
+  return shuffled.slice(0, n);
+}
+
+/**
+ * Generates a full Car object with defects based on the tier.
+ * Follows doc specs for defect counts and hidden flags.
+ */
+export function generateCar(tier: CarTier, forcedModel?: string): Car {
+  const models = forcedModel 
+    ? CAR_MODELS_DB.filter(m => m.name === forcedModel)
+    : CAR_MODELS_DB.filter(m => m.tier === tier);
+    
+  if (models.length === 0) {
+    throw new Error(`No car models found for tier ${tier}`);
+  }
+
+  const model = models[randomInt(0, models.length - 1)]!;
+  const basePrice = randomInt(model.basePriceRange[0], model.basePriceRange[1]);
+  
+  // Defect counts by tier (from doc)
+  let defectCount = 0;
+  let isHiddenDefault = false;
+  
+  switch(tier) {
+    case 'Bucket':   defectCount = 1; break;
+    case 'Scrap':    defectCount = randomInt(2, 4); break;
+    case 'Business': defectCount = randomInt(1, 2); break;
+    case 'Premium':  defectCount = randomInt(0, 1); isHiddenDefault = true; break;
+    case 'Rarity':   defectCount = 2; isHiddenDefault = true; break;
+  }
+
+  const selectedDefectTypes = pickRandomN(DEFECTS_DB, defectCount);
+  const defects: DefectInstance[] = selectedDefectTypes.map(dt => ({
+    id: Math.random().toString(36).substring(2, 9),
+    defectTypeId: dt.id,
+    name: dt.name,
+    category: dt.category,
+    severity: dt.severity,
+    repairCost: generateRepairCost(dt.severity, tier, dt.id).toString(),
+    isRepaired: false,
+    isHidden: isHiddenDefault,
+  }));
+
+  const health = calculateCarHealth(defects);
+
+  return {
+    id: Math.random().toString(36).substring(2, 15),
+    name: model.name,
+    tier,
+    basePrice: basePrice.toString(),
+    health,
+    defects,
+    history: [],
+    isLocked: false,
+    isRented: false,
+    boughtFor: '0',
+  };
+}

@@ -3,6 +3,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { X, Users, Plus, LogIn, Trophy } from 'lucide-react';
 import { useUiStore } from '../../store/uiStore';
 import { useGameStore } from '../../store/gameStore';
+import { Button } from '../ui/Button.js';
 
 export const MultiplayerModal: React.FC = () => {
   const isOpen = useUiStore((s) => s.isCreateRoomModalOpen);
@@ -45,7 +46,7 @@ export const MultiplayerModal: React.FC = () => {
             initial={{ scale: 0.9, opacity: 0 }}
             animate={{ scale: 1, opacity: 1 }}
             exit={{ scale: 0.9, opacity: 0 }}
-            className="w-full max-w-sm bg-[#1a1a1a] border border-white/10 rounded-[2.5rem] p-6 shadow-2xl relative"
+            className="w-full max-w-sm glass-panel rounded-[2.5rem] p-6 shadow-2xl relative"
           >
             <button 
               onClick={() => setIsOpen(false)}
@@ -72,24 +73,26 @@ export const MultiplayerModal: React.FC = () => {
                 </div>
 
                 <div className="grid grid-cols-1 gap-3">
-                  <button
+                  <Button
                     onClick={() => setIsOpen(false)}
-                    className="w-full bg-emerald-600 hover:bg-emerald-500 text-white font-black py-4 rounded-2xl transition-all uppercase tracking-tighter active:scale-95 flex items-center justify-center space-x-2 shadow-lg shadow-emerald-600/20"
+                    variant="primary"
+                    className="w-full"
                   >
                     <span>К игре</span>
-                  </button>
-                  <button
+                  </Button>
+                  <Button
                     onClick={handleCopyLink}
-                    className="w-full bg-white text-black font-black py-4 rounded-2xl transition-all uppercase tracking-tighter active:scale-95 flex items-center justify-center space-x-2"
+                    variant="secondary"
+                    className="w-full"
                   >
                     <span>Пригласить друга</span>
-                  </button>
-                  <button
+                  </Button>
+                  <Button
                     onClick={() => { leaveRoom(); }}
-                    className="w-full bg-white/5 text-red-400 font-bold py-4 rounded-2xl transition-all uppercase tracking-tighter active:scale-95"
+                    className="w-full bg-red-500/10 text-red-400 hover:bg-red-500/20"
                   >
                     Выйти из комнаты
-                  </button>
+                  </Button>
                 </div>
               </div>
             ) : (
@@ -130,12 +133,13 @@ export const MultiplayerModal: React.FC = () => {
                         />
                       </div>
                     </div>
-                    <button
+                    <Button
                       onClick={handleCreate}
-                      className="w-full bg-blue-600 hover:bg-blue-500 text-white font-black py-4 rounded-2xl transition-all uppercase tracking-tighter shadow-lg shadow-blue-600/20 active:scale-95"
+                      variant="primary"
+                      className="w-full"
                     >
                       Создать комнату
-                    </button>
+                    </Button>
                   </div>
                 ) : (
                   <div className="space-y-4">
@@ -150,13 +154,14 @@ export const MultiplayerModal: React.FC = () => {
                         placeholder="XXXXXX"
                       />
                     </div>
-                    <button
+                    <Button
                       onClick={handleJoin}
                       disabled={joinCode.length < 4}
-                      className="w-full bg-emerald-600 hover:bg-emerald-500 disabled:opacity-30 disabled:hover:bg-emerald-600 text-white font-black py-4 rounded-2xl transition-all uppercase tracking-tighter shadow-lg shadow-emerald-600/20 active:scale-95"
+                      variant="primary"
+                      className="w-full disabled:opacity-30"
                     >
                       Присоединиться
-                    </button>
+                    </Button>
                   </div>
                 )}
               </>

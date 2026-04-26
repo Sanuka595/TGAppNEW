@@ -11,15 +11,29 @@
   --color-tg-accent: var(--tg-theme-accent-text-color);
   --color-tg-header: var(--tg-theme-header-bg-color);
   --color-tg-destructive: var(--tg-theme-destructive-text-color);
+
+  /* Premium Glass 2.0 Palette */
+  --color-midnight: #0b1323;
+  --color-obsidian: #060e1d;
+  --color-neon-cyan: #00d2ff;
+  --color-neon-blue: #3a7bd5;
+  --color-glass-bg: rgba(255, 255, 255, 0.03);
+  --color-glass-border: rgba(255, 255, 255, 0.08);
   
   --height-screen: 100dvh;
 }
 
 @layer base {
   body {
-    background-color: var(--tg-theme-bg-color);
-    color: var(--tg-theme-text-color);
-    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif, 'Apple Color Emoji', 'Segoe UI Emoji', 'Segoe UI Symbol';
+    /* Beautiful, elegant deep gradient */
+    background: 
+      radial-gradient(circle at 15% 50%, rgba(0, 210, 255, 0.08), transparent 50%),
+      radial-gradient(circle at 85% 30%, rgba(58, 123, 213, 0.08), transparent 50%),
+      radial-gradient(circle at 50% 100%, rgba(0, 210, 255, 0.05), transparent 50%),
+      #0b1323; /* Midnight base */
+    background-attachment: fixed;
+    color: #dfe2eb;
+    font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
     -webkit-tap-highlight-color: transparent;
     user-select: none;
     overflow-x: hidden;
@@ -30,5 +44,33 @@
   #root {
     height: 100%;
     width: 100%;
+    position: relative;
+  }
+}
+
+@layer components {
+  .glass-panel {
+    background: var(--color-glass-bg);
+    backdrop-filter: blur(16px) saturate(180%);
+    -webkit-backdrop-filter: blur(16px) saturate(180%);
+    border: 1px solid var(--color-glass-border);
+    box-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.3);
+  }
+  
+  .glass-button {
+    background: linear-gradient(135deg, rgba(0, 210, 255, 0.1) 0%, rgba(58, 123, 213, 0.1) 100%);
+    backdrop-filter: blur(16px);
+    border: 1px solid rgba(0, 210, 255, 0.3);
+    box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.1), 0 0 15px rgba(0, 210, 255, 0.15);
+    color: var(--color-neon-cyan);
+    transition: all 0.2s ease;
+  }
+  
+  .glass-button:active {
+    box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.05), 0 0 5px rgba(0, 210, 255, 0.1);
+  }
+
+  .neon-glow {
+    box-shadow: 0 0 15px var(--color-neon-cyan);
   }
 }

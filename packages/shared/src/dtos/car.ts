@@ -4,6 +4,7 @@ import { SeverityLevelSchema, CarTierSchema } from './common.js';
 export const DefectInstanceSchema = z.object({
   id: z.string(),
   defectTypeId: z.string(),
+  name: z.string(),
   severity: SeverityLevelSchema,
   isHidden: z.boolean(),
   repairCost: z.string(), // Decimal string

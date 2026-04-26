@@ -109,7 +109,7 @@ export const GAME_MAP: BoardCell[] = [
   { id: 8,  type: 'special_repair', name: 'Автосервис Пехота', icon: '🛠️', description: 'Спец сервис' },
   { id: 9,  type: 'race',           name: 'Гонка',             icon: '🏎️', description: 'Заезд' },
   { id: 10, type: 'rent',           name: 'Прокат',            icon: '🚗', description: 'Сдача авто' },
-  { id: 11, type: 'buy_business',    name: 'Бизнес',            icon: '💼', description: 'Бизнес-автомобили' },
+  { id: 11, type: 'buy_retro',      name: 'Ретро',             icon: '🏎️', description: 'Редкие и ретро авто' },
 ];
 
 // ─── Solo Mode ────────────────────────────────────────────────────────────────

@@ -1,4 +1,6 @@
 import React from 'react';
+import { motion } from 'framer-motion';
+import WebApp from '@twa-dev/sdk';
 import type { ActiveTab } from '../store/uiStore';
 
 type NavItem = ActiveTab;
@@ -15,23 +17,41 @@ export const BottomNavigation: React.FC<Props> = ({ activeTab, onTabChange }) =>
     { id: 'board', label: 'Игра', icon: '🎲' },
   ];
 
+  const handleTabChange = (id: NavItem) => {
+    if (activeTab === id) return;
+    try {
+      if (WebApp.isExpanded) WebApp.HapticFeedback.impactOccurred('light');
+    } catch (e) {}
+    onTabChange(id);
+  };
+
   return (
-    <div className="bg-tg-secondary-bg border-t border-tg-hint/20 flex justify-around items-center h-16 safe-area-bottom sticky bottom-0 z-10">
-      {navItems.map((item) => (
-        <button
-          key={item.id}
-          onClick={() => onTabChange(item.id)}
-          className={`flex flex-col items-center justify-center w-full h-full transition-colors ${
-            activeTab === item.id ? 'text-tg-button' : 'text-tg-hint'
-          }`}
-        >
-          <span className="text-xl">{item.icon}</span>
-          <span className="text-[10px] mt-1 font-medium">{item.label}</span>
-          {activeTab === item.id && (
-            <div className="w-1 h-1 bg-tg-button rounded-full mt-0.5" />
-          )}
-        </button>
-      ))}
+    <div className="fixed bottom-4 left-4 right-4 z-50 flex justify-center pb-safe">
+      <div className="glass-panel rounded-[2rem] flex justify-between items-center px-2 py-2 w-full max-w-sm">
+        {navItems.map((item) => {
+          const isActive = activeTab === item.id;
+          return (
+            <motion.button
+              key={item.id}
+              whileTap={{ scale: 0.9 }}
+              onClick={() => handleTabChange(item.id)}
+              className={`relative flex flex-col items-center justify-center w-full py-2 rounded-[1.5rem] transition-all duration-300 ${
+                isActive ? 'text-cyan-300 bg-white/5 shadow-[inset_0_0_15px_rgba(255,255,255,0.05)]' : 'text-white/40 hover:text-white/80'
+              }`}
+            >
+              {isActive && (
+                <motion.div 
+                  layoutId="nav-pill"
+                  className="absolute inset-0 bg-cyan-500/10 rounded-[1.5rem] border border-cyan-400/20 shadow-[0_0_15px_rgba(6,182,212,0.2)]"
+                  transition={{ type: 'spring', stiffness: 300, damping: 25 }}
+                />
+              )}
+              <span className="text-xl relative z-10 drop-shadow-md mb-0.5">{item.icon}</span>
+              <span className="text-[10px] font-black uppercase tracking-widest relative z-10">{item.label}</span>
+            </motion.button>
+          );
+        })}
+      </div>
     </div>
   );
 };
