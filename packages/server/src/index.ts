@@ -39,8 +39,22 @@ app.get('/health', (_req: Request, res: Response) => {
 
 // In production, serve the client static build
 const clientDistPath = path.resolve(__dirname, '../../../client/dist');
-if (isProduction && fs.existsSync(clientDistPath)) {
-  app.use(express.static(clientDistPath));
+console.log(`[SERVE] Checking client static path: ${clientDistPath}`);
+
+if (isProduction) {
+  if (fs.existsSync(clientDistPath)) {
+    console.log('✅ Client static files found, serving from dist');
+    app.use(express.static(clientDistPath));
+  } else {
+    console.error('❌ CRITICAL: Client static files NOT found at:', clientDistPath);
+    // Log contents of parent dir to help debug
+    try {
+      const parentDir = path.resolve(clientDistPath, '..');
+      if (fs.existsSync(parentDir)) {
+        console.log(`[DEBUG] Parent dir contents (${parentDir}):`, fs.readdirSync(parentDir));
+      }
+    } catch (e) {}
+  }
 }
 
 const httpServer = createServer(app);
