@@ -78,9 +78,9 @@ export default function App(): JSX.Element {
       case 'board':
       default:
         return (
-          <div className="flex flex-col items-center gap-3 h-full">
+          <div className="flex flex-col items-center gap-3 flex-1 min-h-0">
             {/* Board fills all available flex space */}
-            <div className="flex-1 min-h-0 w-full flex items-center justify-center">
+            <div className="flex-1 min-h-0 w-full flex items-center justify-center touch-none">
               <RadialBoard />
             </div>
 

@@ -46,6 +46,7 @@
     overflow-x: hidden;
     min-height: 100dvh;
     width: 100%;
+    touch-action: manipulation;
   }
 
   /* ── Light Theme Variables ─────────────────────────────────────────────── */
