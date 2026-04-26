@@ -75,14 +75,25 @@ setInterval(() => {
 const BOT_TOKEN = process.env['TELEGRAM_BOT_TOKEN'];
 
 if (BOT_TOKEN) {
-  const bot = new TelegramBot(BOT_TOKEN, { polling: true });
-  
-  // Get bot info to construct links
-  let botUsername = 'perekup_d6_bot';
-  bot.getMe().then((me) => {
-    botUsername = me.username || botUsername;
-    console.log(`Bot @${botUsername} is running`);
-  });
+  const bot = new TelegramBot(BOT_TOKEN, { polling: false }); // Initialize without polling first
+
+  // Ensure only one bot instance is polling and clear any hanging webhooks
+  bot.deleteWebHook()
+    .then(() => {
+      console.log('Telegram webhook cleared, starting polling...');
+      return bot.startPolling();
+    })
+    .then(() => {
+      bot.getMe().then((me) => {
+        console.log(`Bot @${me.username} is running`);
+      });
+    })
+    .catch(err => {
+      console.error('Bot initialization error:', err.message);
+      if (err.message.includes('409')) {
+        console.error('CRITICAL: Bot conflict. Stop all other instances of this bot.');
+      }
+    });
 
   bot.onText(/\/start/, (msg) => {
     const chatId = msg.chat.id;
