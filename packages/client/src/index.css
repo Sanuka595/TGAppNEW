@@ -50,13 +50,46 @@
   }
 
   body.light {
-    --bg-color: #f0f4f8;
-    --text-color: #1e293b;
-    --glass-bg: rgba(255, 255, 255, 0.65);
-    --glass-border: rgba(0, 0, 0, 0.10);
-    --radial-1: rgba(0, 180, 220, 0.12);
-    --radial-2: rgba(58, 123, 213, 0.12);
+    --bg-color: #f1f5f9;
+    --text-color: #0f172a;
+    --glass-bg: rgba(255, 255, 255, 0.7);
+    --glass-border: rgba(255, 255, 255, 0.5);
+    --radial-1: rgba(0, 210, 255, 0.15);
+    --radial-2: rgba(58, 123, 213, 0.15);
   }
+
+  /* Force dark text for semi-transparent elements in Light Mode */
+  body.light .text-white\/30,
+  body.light .text-white\/40,
+  body.light .text-white\/50,
+  body.light .text-white\/60,
+  body.light .text-white\/70,
+  body.light .text-white\/80 {
+    color: #475569;
+  }
+
+  body.light .glass-panel {
+    background: var(--glass-bg);
+    border: 1px solid var(--glass-border);
+    box-shadow: 0 8px 32px 0 rgba(31, 38, 135, 0.08);
+  }
+
+  /* High-contrast cell labels in Light Mode */
+  body.light .text-emerald-300 { color: #059669; }
+  body.light .text-blue-300 { color: #2563eb; }
+  body.light .text-orange-300 { color: #d97706; }
+  body.light .text-indigo-300 { color: #4f46e5; }
+  body.light .text-purple-300 { color: #7c3aed; }
+  body.light .text-cyan-300 { color: #0891b2; }
+  body.light .text-amber-300 { color: #d97706; }
+  body.light .text-sky-300 { color: #0284c7; }
+  body.light .text-rose-300 { color: #e11d48; }
+  body.light .text-yellow-300 { color: #ca8a04; }
+  body.light .text-teal-300 { color: #0d9488; }
+  body.light .text-red-300 { color: #dc2626; }
+  body.light .text-cyan-400 { color: #0891b2; }
+  body.light .text-emerald-400 { color: #059669; }
+
   
   #root {
     height: 100%;
