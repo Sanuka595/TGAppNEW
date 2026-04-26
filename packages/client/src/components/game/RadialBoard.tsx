@@ -46,7 +46,19 @@ const CELL_STYLES: Record<CellType, string> = {
 };
 
 export const RadialBoard: React.FC = () => {
-  const { players, player: localPlayer } = useGameStore();
+  const { players, player: localPlayer, currentTurnIndex, hasRolledThisTurn, manualMove } = useGameStore();
+
+  const isMyTurn = players[currentTurnIndex]?.id === localPlayer.id;
+  const canUseEnergy = isMyTurn && !hasRolledThisTurn && localPlayer.energy > 0;
+
+  const handleCellClick = (cellId: number) => {
+    if (!canUseEnergy) return;
+    // Calculate how many steps forward this cell is
+    const steps = (cellId - localPlayer.position + 12) % 12;
+    if (steps === 0) return; // Cannot move to current cell
+    
+    manualMove(steps);
+  };
 
   return (
     <div className="w-full max-w-[min(96vw,420px)] aspect-square mx-auto relative select-none p-2">
@@ -71,11 +83,13 @@ export const RadialBoard: React.FC = () => {
                 stiffness: 200
               }}
               style={{ gridRow: pos.row, gridColumn: pos.col }}
+              onClick={() => handleCellClick(cell.id)}
               className={`
                 relative flex flex-col items-center justify-center p-1.5 rounded-[20px] 
                 border-t-[1px] border-l-[1px] bg-gradient-to-br backdrop-blur-xl
                 transition-all duration-300 active:scale-95 group
                 ${style}
+                ${canUseEnergy ? 'cursor-pointer hover:ring-2 hover:ring-white/50 hover:-translate-y-1' : 'cursor-default'}
               `}
             >
               {/* Inner Glow Effect */}

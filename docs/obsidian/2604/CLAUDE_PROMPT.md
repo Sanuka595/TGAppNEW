@@ -7,11 +7,11 @@ You are tasked with stabilizing and expanding the core mechanics of "TGPerekup" 
 - **MarketView Bug**: The "Buy" (Выкупить) button in `packages/client/src/components/game/MarketView.tsx` has NO `onClick` handler. Bind it to `buyCar(car.id)` from `useGameStore`.
 - **Logic Sync**: Ensure `calculateCurrentMarketValue` in `MarketView` receives `activeEvent` from the store to make prices dynamic.
 
-## 3. Core Mechanic Implementation: Energy & Tap Loop
-- **Energy System**: Implement an "Energy-to-Move" loop. 
-    - Every Dice Roll (Tap) MUST consume 1 unit of Energy.
-    - If Energy is 0, the player cannot move.
-    - Implement a "Tap to Move" feel in `DiceArea.tsx`. The goal for the early game is to "tap" until landing on high-value or specific cells (like "Битьё" for cheap cars).
+## 3. Core Mechanic Implementation: Energy & Tactical Jump
+- **Energy System (Tactical Tool)**: Energy is NOT required for normal dice rolls. Normal rolls are free.
+    - Energy is a "joker" resource (max 3, slow regen).
+    - If a player has >0 Energy and it's their turn, they can CLICK ON ANY CELL on the board to perform a "Tactical Jump".
+    - The `manualMove` function in `gameStore` handles this by calculating the distance and setting the player's position, consuming 1 Energy.
     - Implement background energy regeneration (e.g., 1 unit every 30 minutes) using `energyRegenCounter` in `gameStore.ts`.
 - **State Integrity**: Update `executeCellAction` in `gameStore.ts` to ensure it handles all cell types correctly according to `types.ts` (Repair, Rent, Sale, News, etc.).
 

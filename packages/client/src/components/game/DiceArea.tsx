@@ -15,8 +15,7 @@ export const DiceArea: React.FC = () => {
 
   const currentPlayer = players[currentTurnIndex];
   const isMyTurn = currentPlayer?.id === player.id;
-  const hasEnergy = player.energy > 0;
-  const canRoll = isMyTurn && !hasRolledThisTurn && hasEnergy;
+  const canRoll = isMyTurn && !hasRolledThisTurn;
 
   return (
     <div className="flex items-center justify-center w-full h-full relative">
@@ -29,7 +28,7 @@ export const DiceArea: React.FC = () => {
           className="absolute top-[calc(22px)] left-0 right-0 text-[9px] uppercase opacity-60 font-black tracking-widest text-white text-center drop-shadow-md"
         >
           {isMyTurn
-            ? (hasRolledThisTurn ? 'Действуй' : (hasEnergy ? 'Твой выход!' : 'Нет энергии!'))
+            ? (hasRolledThisTurn ? 'Действуй' : 'Твой выход!')
             : `Ждем: ${currentPlayer?.name || '...'}`}
         </motion.div>
       </AnimatePresence>
