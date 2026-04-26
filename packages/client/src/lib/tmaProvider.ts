@@ -87,6 +87,15 @@ export const initTma = () => {
   WebApp.ready();
   WebApp.expand();
   
+  try {
+    // @ts-ignore - Some older versions of @twa-dev/sdk might not have this in types
+    if (WebApp.enableVerticalSwipes) {
+      WebApp.enableVerticalSwipes();
+    }
+  } catch (e) {
+    console.debug('enableVerticalSwipes not supported');
+  }
+  
   // Set theme-based colors
   WebApp.setHeaderColor('bg_color');
   WebApp.setBackgroundColor('bg_color');
