@@ -75,7 +75,11 @@ setInterval(() => {
 const BOT_TOKEN = process.env['TELEGRAM_BOT_TOKEN'];
 
 if (BOT_TOKEN) {
-  const bot = new TelegramBot(BOT_TOKEN, { polling: false }); // Initialize without polling first
+  // Debug: show partial token info (safe)
+  const maskedToken = `${BOT_TOKEN.substring(0, 4)}...${BOT_TOKEN.substring(BOT_TOKEN.length - 4)}`;
+  console.log(`[DEBUG] Token Length: ${BOT_TOKEN.length}, Pattern: ${maskedToken}`);
+
+  const bot = new TelegramBot(BOT_TOKEN, { polling: false }); 
 
   // Ensure only one bot instance is polling and clear any hanging webhooks
   bot.deleteWebHook()
