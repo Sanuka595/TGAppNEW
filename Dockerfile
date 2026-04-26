@@ -1,37 +1,35 @@
-# ── Base: install all deps ──────────────────────────────────────────────────
-FROM node:22-alpine AS base
+FROM node:20-slim AS base
 WORKDIR /app
+ENV NODE_ENV=production
 
-# Copy root manifest and workspace manifests
+# Install dependencies
 COPY package*.json ./
 COPY packages/shared/package*.json ./packages/shared/
 COPY packages/server/package*.json ./packages/server/
 COPY packages/client/package*.json ./packages/client/
 
-# Install dependencies (including devDependencies for build)
-RUN npm ci
+# Install ALL dependencies (including dev for building)
+RUN npm ci --include=dev
 
-# Copy configuration files
+# Copy source and configs
 COPY tsconfig.base.json ./
-
-# ── Shared build ────────────────────────────────────────────────────────────
-FROM base AS shared-build
 COPY packages/shared/ ./packages/shared/
+COPY packages/server/ ./packages/server/
+COPY packages/client/ ./packages/client/
+
+# Build shared first
 RUN npm run build -w @tgperekup/shared
 
-# ── Client build ────────────────────────────────────────────────────────────
-FROM shared-build AS client-build
-COPY packages/client/ ./packages/client/
+# Build client (to generate dist for server)
 RUN npm run build -w @tgperekup/client
 
-# ── Server build (includes client dist for static serving) ──────────────────
-FROM client-build AS server
-COPY packages/server/ ./packages/server/
+# Build server
 RUN npm run build -w @tgperekup/server
 
-# Railway specific: server should listen on PORT env var
-ENV NODE_ENV=production
-ENV PORT=3000
+# Final cleanup: we could remove devDeps but let's keep it simple for now
+# to ensure everything works.
+
 EXPOSE 3000
+ENV PORT=3000
 
 CMD ["node", "packages/server/dist/src/index.js"]
