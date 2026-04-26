@@ -62,5 +62,3 @@ export const CAR_MODELS_DB: CarModel[] = [
   { name: 'Dodge Charger 1969', tier: 'Rarity',  basePriceRange: [50000, 110000] },
   { name: 'Shelby GT500 1967',  tier: 'Rarity',  basePriceRange: [120000, 250000] },
 ];
-
-];
