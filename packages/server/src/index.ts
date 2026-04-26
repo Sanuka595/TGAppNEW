@@ -88,7 +88,7 @@ if (BOT_TOKEN) {
     const chatId = msg.chat.id;
     
     // Пытаемся взять URL из переменных окружения, иначе используем тот, что дал пользователь
-    const webAppUrl = process.env['WEBAPP_URL'] || 'https://tgperekupserver-production-38c8.up.railway.app/';
+    const webAppUrl = process.env['WEBAPP_URL'] || 'https://tgperekupserver-production-c250.up.railway.app/';
 
     bot.sendMessage(chatId, '🚗 **Добро пожаловать в Перекуп D6!**\n\nВыбери режим игры:', {
       parse_mode: 'Markdown',
