@@ -14,6 +14,7 @@ interface UiState {
   isContractsModalOpen: boolean;
   highlightedCellId: number | null;
   theme: 'light' | 'dark';
+  isDevPanelOpen: boolean;
 }
 
 interface UiActions {
@@ -31,6 +32,7 @@ interface UiActions {
   setTheme: (theme: 'light' | 'dark') => void;
   toggleTheme: () => void;
   closeTopUiLayer: () => boolean;
+  setIsDevPanelOpen: (isOpen: boolean) => void;
   resetUiState: () => void;
 }
 
@@ -45,6 +47,7 @@ const initialUiState: UiState = {
   isContractsModalOpen: false,
   highlightedCellId: null,
   theme: 'dark',
+  isDevPanelOpen: false,
 };
 
 export const useUiStore = create<UiState & UiActions>()(
@@ -111,6 +114,7 @@ export const useUiStore = create<UiState & UiActions>()(
     });
     return isHandled;
   },
+  setIsDevPanelOpen: (isOpen) => set({ isDevPanelOpen: isOpen }),
   resetUiState: () => set(initialUiState),
     }),
     {

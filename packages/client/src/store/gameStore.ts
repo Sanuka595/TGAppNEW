@@ -223,6 +223,83 @@ export const useGameStore = create<GameStore>()(
           });
         }
       },
+      diagnoseMarketCar: (carId) => {
+        const { player, market, roomId } = get();
+        const car = market.find(c => c.id === carId);
+        if (!car) return;
+
+        const cost = 200;
+        const balance = new Decimal(player.balance);
+        if (balance.lt(cost)) {
+          get().addLog('Недостаточно денег на диагностику!', 'error');
+          return;
+        }
+
+        const newBalance = balance.sub(cost).toFixed(0);
+        const newMarket = market.map(c => {
+          if (c.id !== carId) return c;
+          return {
+            ...c,
+            defects: c.defects.map(d => ({ ...d, isHidden: false }))
+          };
+        });
+
+        set((state) => ({
+          player: { ...state.player, balance: newBalance },
+          market: newMarket,
+        }));
+
+        get().addLog(`Диагностика ${car.name} завершена. Скрытые дефекты обнаружены!`, 'success');
+        triggerHaptic('impact', 'light');
+
+        if (roomId) {
+          socket.emit('sync_action', {
+            roomId,
+            playerId: player.id,
+            action: 'diagnoseMarketCar',
+            payload: carId,
+          });
+        }
+        }
+      },
+      refreshMarket: () => {
+        const { player, currentEvent, roomId } = get();
+        if (!currentEvent || !currentEvent.type.startsWith('buy_')) {
+          get().addLog('Обновить рынок можно только на клетке покупки!', 'error');
+          return;
+        }
+
+        const cost = 500;
+        const balance = new Decimal(player.balance);
+        if (balance.lt(cost)) {
+          get().addLog('Недостаточно денег для обновления рынка!', 'error');
+          return;
+        }
+
+        const tier = currentEvent.type.split('_')[1] as any;
+        const newMarket = [
+          generateCar(tier === 'random' ? 'Bucket' : tier),
+          generateCar(tier === 'random' ? 'Scrap' : tier),
+          generateCar(tier === 'random' ? 'Business' : tier)
+        ];
+
+        set((state) => ({
+          player: { ...state.player, balance: balance.sub(cost).toFixed(0) },
+          market: newMarket,
+        }));
+
+        get().addLog('Список автомобилей обновлен!', 'success');
+        triggerHaptic('impact', 'medium');
+
+        if (roomId) {
+          socket.emit('sync_action', {
+            roomId,
+            playerId: player.id,
+            action: 'refreshMarket',
+            payload: null,
+          });
+        }
+      },
       rentCar: (carId) => {
         const { player, roomId } = get();
         const garage = player.garage ?? [];
@@ -530,6 +607,25 @@ export const useGameStore = create<GameStore>()(
       setActiveRace: (race) => set({ activeRace: race }),
       setRemoteAnimation: (anim) => set({ remoteAnimation: anim }),
       setWinnerId: (id) => set({ winnerId: id }),
+      // Dev Tools Implementation
+      devAddMoney: (amount) => {
+        set((s) => ({ player: { ...s.player, balance: new Decimal(s.player.balance).add(amount).toFixed(0) } }));
+        get().addLog(`[DEV] Добавлено $${amount}`, 'success');
+      },
+      devAddEnergy: (amount) => {
+        set((s) => ({ player: { ...s.player, energy: Math.min(s.player.energy + amount, 10) } }));
+        get().addLog(`[DEV] Добавлено ${amount} энергии`, 'info');
+      },
+      devTeleport: (cellId) => {
+        const cell = GAME_MAP.find(c => c.id === cellId) || null;
+        set((s) => ({ player: { ...s.player, position: cellId }, currentEvent: cell }));
+        get().executeCellAction(cell);
+        get().addLog(`[DEV] Телепорт на клетку ${cellId}`, 'info');
+      },
+      devResetTurn: () => {
+        set({ hasRolledThisTurn: false });
+        get().addLog('[DEV] Ход сброшен', 'info');
+      },
     }),
     {
       name: 'perekup-storage',

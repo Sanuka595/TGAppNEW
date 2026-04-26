@@ -17,6 +17,8 @@ const TIER_COLORS: Record<CarTier, string> = {
 export const MarketView: React.FC = () => {
   const market = useGameStore((s) => s.market) || [];
   const buyCar = useGameStore((s) => s.buyCar);
+  const diagnoseMarketCar = useGameStore((s) => s.diagnoseMarketCar);
+  const refreshMarket = useGameStore((s) => s.refreshMarket);
   const activeEvent = useGameStore((s) => s.activeEvent);
 
   if (market.length === 0) {
@@ -50,10 +52,20 @@ export const MarketView: React.FC = () => {
         <h2 className="text-2xl font-black uppercase tracking-tighter text-white">
           Рынок Авто
         </h2>
-        <span className="bg-emerald-500/10 px-3 py-1 rounded-full text-xs font-bold text-emerald-400 border border-emerald-500/20 flex items-center space-x-1.5">
-          <ShoppingBag size={12} />
-          <span>{market.length} лотов</span>
-        </span>
+        <div className="flex items-center space-x-2">
+          <Button
+            variant="secondary"
+            className="h-8 px-3 text-[10px]"
+            onClick={() => { triggerHaptic('impact', 'medium'); refreshMarket(); }}
+          >
+            <TrendingUp size={12} className="mr-1.5" />
+            Обновить ($500)
+          </Button>
+          <span className="bg-emerald-500/10 px-3 py-1 rounded-full text-xs font-bold text-emerald-400 border border-emerald-500/20 flex items-center space-x-1.5 h-8">
+            <ShoppingBag size={12} />
+            <span>{market.length} лотов</span>
+          </span>
+        </div>
       </div>
       
       <div className="grid grid-cols-1 gap-5">
@@ -129,13 +141,24 @@ export const MarketView: React.FC = () => {
               </p>
             </div>
 
-            <Button
-              className="w-full mt-2"
-              variant="primary"
-              onClick={() => { triggerHaptic('notification', 'success'); buyCar(car.id); }}
-            >
-              Выкупить лот
-            </Button>
+            <div className="flex gap-3 mt-2">
+              {car.defects.some(d => d.isHidden) && (
+                <Button
+                  className="flex-1"
+                  variant="secondary"
+                  onClick={() => { triggerHaptic('impact', 'light'); diagnoseMarketCar(car.id); }}
+                >
+                  Диагностика ($200)
+                </Button>
+              )}
+              <Button
+                className="flex-[2]"
+                variant="primary"
+                onClick={() => { triggerHaptic('notification', 'success'); buyCar(car.id); }}
+              >
+                Выкупить лот
+              </Button>
+            </div>
           </motion.div>
         )})}
       </div>

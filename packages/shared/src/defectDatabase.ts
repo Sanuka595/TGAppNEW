@@ -7,6 +7,13 @@ export const DEFECTS_DB: DefectType[] = [
   { id: 'eng_3',  name: 'Пробита прокладка ГБЦ',  category: 'Engine',      severity: 'Critical' },
   { id: 'eng_4',  name: 'Убитая турбина',          category: 'Engine',      severity: 'Serious'  },
   { id: 'eng_5',  name: 'Троит двигатель',         category: 'Engine',      severity: 'Medium'   },
+  { id: 'eng_6',  name: 'Скрученный пробег',       category: 'Engine',      severity: 'Serious'  },
+
+  // --- GEARBOX ---
+  { id: 'gear_1', name: 'Пинки в АКПП',            category: 'Engine',      severity: 'Serious'  },
+  { id: 'gear_2', name: 'Буксует сцепление',       category: 'Engine',      severity: 'Medium'   },
+  { id: 'gear_3', name: 'Убитая механика',         category: 'Engine',      severity: 'Critical' },
+  { id: 'gear_4', name: 'Стружка в вариаторе',     category: 'Engine',      severity: 'Critical' },
 
   // --- ELECTRICAL ---
   { id: 'elec_1', name: 'Умер блок управления (ECU)', category: 'Electrical', severity: 'Critical' },
@@ -14,6 +21,7 @@ export const DEFECTS_DB: DefectType[] = [
   { id: 'elec_3', name: 'Не работает приборка',    category: 'Electrical', severity: 'Medium'   },
   { id: 'elec_4', name: 'Севший аккумулятор',      category: 'Electrical', severity: 'Light'    },
   { id: 'elec_5', name: 'Проблемы с генератором',  category: 'Electrical', severity: 'Serious'  },
+  { id: 'elec_6', name: 'Чеки на панели',          category: 'Electrical', severity: 'Medium'   },
 
   // --- SUSPENSION ---
   { id: 'susp_1', name: 'Убитая подвеска',         category: 'Suspension', severity: 'Serious'  },
@@ -21,6 +29,7 @@ export const DEFECTS_DB: DefectType[] = [
   { id: 'susp_3', name: 'Кривые диски',            category: 'Suspension', severity: 'Medium'   },
   { id: 'susp_4', name: 'Изношены тормоза',        category: 'Suspension', severity: 'Light'    },
   { id: 'susp_5', name: 'Люфт ступицы',            category: 'Suspension', severity: 'Serious'  },
+  { id: 'susp_6', name: 'Гудит редуктор',          category: 'Suspension', severity: 'Serious'  },
 
   // --- BODY ---
   { id: 'body_1', name: 'Ржавчина',                category: 'Body',       severity: 'Serious'  },
@@ -28,6 +37,8 @@ export const DEFECTS_DB: DefectType[] = [
   { id: 'body_3', name: 'Сильная вмятина',         category: 'Body',       severity: 'Medium'   },
   { id: 'body_4', name: 'Нарушена геометрия',      category: 'Body',       severity: 'Critical' },
   { id: 'body_5', name: 'Разбитые фары',           category: 'Body',       severity: 'Light'    },
+  { id: 'body_6', name: 'Следы ДТП (Тотл)',        category: 'Body',       severity: 'Critical' },
+  { id: 'body_7', name: 'Машина-утопленник',       category: 'Body',       severity: 'Critical' },
 
   // --- SPECIAL ---
   {

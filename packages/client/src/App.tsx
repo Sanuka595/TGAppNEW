@@ -9,6 +9,7 @@ import { useGameStore, initSocketListeners } from './store/gameStore';
 import { useUiStore } from './store/uiStore';
 import { useTelegram } from './hooks/useTelegram';
 import { getTmaStartParam } from './lib/tmaProvider';
+import { DevPanel } from './components/game/DevPanel';
 
 export default function App(): JSX.Element {
   const { haptic, webApp } = useTelegram();
@@ -114,6 +115,7 @@ export default function App(): JSX.Element {
       {renderContent()}
       <ActionModal />
       <MultiplayerModal />
+      <DevPanel />
     </MainLayout>
   );
 }

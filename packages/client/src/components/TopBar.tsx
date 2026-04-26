@@ -9,15 +9,38 @@ export const TopBar: React.FC = () => {
   const player = useGameStore((s) => s.player);
   const roomId = useGameStore((s) => s.roomId);
   const setIsMultiplayerOpen = useUiStore((s) => s.setIsCreateRoomModalOpen);
+  const setIsDevPanelOpen = useUiStore((s) => s.setIsDevPanelOpen);
   const theme = useUiStore((s) => s.theme);
   const toggleTheme = useUiStore((s) => s.toggleTheme);
   
+  const clickCount = React.useRef(0);
+  const lastClickTime = React.useRef(0);
+
+  const handleAvatarClick = () => {
+    const now = Date.now();
+    if (now - lastClickTime.current > 1000) {
+      clickCount.current = 1;
+    } else {
+      clickCount.current += 1;
+    }
+    lastClickTime.current = now;
+
+    if (clickCount.current >= 5) {
+      triggerHaptic('impact', 'heavy');
+      setIsDevPanelOpen(true);
+      clickCount.current = 0;
+    }
+  };
+
   const formattedBalance = new Decimal(player.balance).toNumber().toLocaleString('ru-RU');
 
   return (
     <div className="topbar-root bg-black/20 p-4 border-b border-white/5 flex justify-between items-center sticky top-0 z-50 backdrop-blur-lg h-20">
       <div className="flex items-center space-x-3">
-        <div className="w-10 h-10 bg-gradient-to-br from-blue-500 to-indigo-600 rounded-2xl flex items-center justify-center shadow-lg border border-white/10">
+        <div 
+          onClick={handleAvatarClick}
+          className="w-10 h-10 bg-gradient-to-br from-blue-500 to-indigo-600 rounded-2xl flex items-center justify-center shadow-lg border border-white/10 active:scale-90 transition-transform cursor-pointer"
+        >
           <User size={20} className="text-white" />
         </div>
         <div className="flex flex-col">
