@@ -15,6 +15,8 @@ const TIER_COLORS: Record<CarTier, string> = {
 
 export const MarketView: React.FC = () => {
   const market = useGameStore((s) => s.market) || [];
+  const buyCar = useGameStore((s) => s.buyCar);
+  const activeEvent = useGameStore((s) => s.activeEvent);
 
   if (market.length === 0) {
     return (
@@ -56,8 +58,8 @@ export const MarketView: React.FC = () => {
       <div className="grid grid-cols-1 gap-5">
         {market.map((car, index) => {
           // BIZ:DEAL_ANALYZER Logic
-          const buyPrice = calculateCurrentMarketValue(car);
-          const maxSellPrice = calculateSellPrice({ ...car, defects: [], health: 100 });
+          const buyPrice = calculateCurrentMarketValue(car, activeEvent);
+          const maxSellPrice = calculateSellPrice({ ...car, defects: [], health: 100 }, activeEvent);
           const potentialProfit = maxSellPrice.sub(buyPrice);
           const profitMargin = buyPrice.gt(0) ? potentialProfit.div(buyPrice).mul(100).toNumber() : 0;
           
@@ -126,7 +128,11 @@ export const MarketView: React.FC = () => {
               </p>
             </div>
 
-            <Button className="w-full mt-2" variant="primary">
+            <Button 
+              className="w-full mt-2" 
+              variant="primary"
+              onClick={() => buyCar(car.id)}
+            >
               Выкупить лот
             </Button>
           </motion.div>

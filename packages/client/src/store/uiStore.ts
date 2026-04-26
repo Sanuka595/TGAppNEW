@@ -12,6 +12,7 @@ interface UiState {
   isRulesModalOpen: boolean;
   isContractsModalOpen: boolean;
   highlightedCellId: number | null;
+  theme: 'light' | 'dark';
 }
 
 interface UiActions {
@@ -26,6 +27,8 @@ interface UiActions {
   setIsRulesModalOpen: (isOpen: boolean) => void;
   setIsContractsModalOpen: (isOpen: boolean) => void;
   setHighlightedCellId: (cellId: number | null) => void;
+  setTheme: (theme: 'light' | 'dark') => void;
+  toggleTheme: () => void;
   closeTopUiLayer: () => boolean;
   resetUiState: () => void;
 }
@@ -40,6 +43,7 @@ const initialUiState: UiState = {
   isRulesModalOpen: false,
   isContractsModalOpen: false,
   highlightedCellId: null,
+  theme: 'dark',
 };
 
 export const useUiStore = create<UiState & UiActions>((set) => ({
@@ -64,6 +68,8 @@ export const useUiStore = create<UiState & UiActions>((set) => ({
   setIsRulesModalOpen: (isOpen) => set({ isRulesModalOpen: isOpen }),
   setIsContractsModalOpen: (isOpen) => set({ isContractsModalOpen: isOpen }),
   setHighlightedCellId: (cellId) => set({ highlightedCellId: cellId }),
+  setTheme: (theme) => set({ theme }),
+  toggleTheme: () => set((state) => ({ theme: state.theme === 'dark' ? 'light' : 'dark' })),
   closeTopUiLayer: () => {
     let isHandled = false;
     set((state) => {

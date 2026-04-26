@@ -45,6 +45,12 @@ export default function App(): JSX.Element {
     }
   }, [haptic]);
 
+  const theme = useUiStore((s) => s.theme);
+  
+  useEffect(() => {
+    document.body.classList.toggle('light', theme === 'light');
+  }, [theme]);
+
   useEffect(() => {
     initSocketListeners();
     

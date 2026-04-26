@@ -287,10 +287,15 @@ export const useGameStore = create<GameStore>()(
           // Allow rolling dice in solo mode if no room is active
           if (get().isSoloMode) {
             // This is a placeholder for solo mode dice roll logic
+            if (player.energy < 1) {
+              get().addLog('Недостаточно энергии!', 'error');
+              return;
+            }
             const diceValue = Math.floor(Math.random() * 6) + 1;
             const newPosition = (player.position + diceValue) % 12;
             get().handleDiceRollResult(player.id, diceValue, newPosition);
             get().addLog(`Вы бросили кубик: ${diceValue}`, 'info');
+            set((s) => ({ player: { ...s.player, energy: s.player.energy - 1 } }));
             return;
           }
           return; // No room, not solo mode
@@ -308,7 +313,13 @@ export const useGameStore = create<GameStore>()(
           return;
         }
 
+        if (player.energy < 1) {
+          get().addLog('Недостаточно энергии!', 'error');
+          return;
+        }
+
         socket.emit('dice_roll', { roomId, playerId: player.id });
+        set((s) => ({ player: { ...s.player, energy: s.player.energy - 1 } }));
       },
       // ── Solo actions ──
       startSoloMode: () => {
