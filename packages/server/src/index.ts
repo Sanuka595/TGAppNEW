@@ -78,11 +78,22 @@ if (BOT_TOKEN) {
   const tokenPrefix = BOT_TOKEN.substring(0, 4);
   console.log(`[AUTH] Starting bot with token prefix: ${tokenPrefix}... (Length: ${BOT_TOKEN.length})`);
 
-  const bot = new TelegramBot(BOT_TOKEN, { polling: true });
+  // Start WITHOUT polling first to avoid immediate 409 conflict
+  const bot = new TelegramBot(BOT_TOKEN, { polling: false });
 
+  console.log('Clearing webhook and waiting for fresh start...');
+  
   bot.deleteWebHook()
     .then(() => {
-      console.log('Telegram webhook cleared.');
+      console.log('Telegram webhook cleared. Waiting 5s for session cleanup...');
+      // Small delay to let Telegram servers settle
+      return new Promise(resolve => setTimeout(resolve, 5000));
+    })
+    .then(() => {
+      console.log('Starting polling now...');
+      return bot.startPolling();
+    })
+    .then(() => {
       return bot.getMe();
     })
     .then((me) => {
