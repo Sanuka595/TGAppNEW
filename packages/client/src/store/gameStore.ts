@@ -113,7 +113,7 @@ export const useGameStore = create<GameStore>()(
           market: state.market.filter((c) => c.id !== carId),
         }));
 
-        get().addLog(`Вы купили ${car.name} за $${price.toFixed(0)}`, 'success');
+        get().addLog(`Сделка века! Вы купили ${car.name}. Теперь это твоя головная боль за $${price.toFixed(0)}.`, 'success');
 
         if (roomId) {
           socket.emit('sync_action', {
@@ -155,7 +155,7 @@ export const useGameStore = create<GameStore>()(
           garage: state.garage.filter((c) => c.id !== carId),
         }));
 
-        get().addLog(`Вы продали ${car.name} за $${sellPrice.toFixed(0)}`, 'success');
+        get().addLog(`Лох найден! Продали ${car.name} за $${sellPrice.toFixed(0)}. Деньги не пахнут!`, 'success');
 
         if (roomId) {
           socket.emit('sync_action', {
@@ -196,7 +196,7 @@ export const useGameStore = create<GameStore>()(
           player: { ...state.player, balance: newBalance, garage: newGarage },
         }));
 
-        get().addLog(`Отремонтировано: ${defect.name} за $${cost.toFixed(0)}`, 'success');
+        get().addLog(`Мастер сплюнул и сказал: "${defect.name}" исправлено. С тебя $${cost.toFixed(0)}.`, 'success');
 
         if (roomId) {
           socket.emit('sync_action', {
@@ -229,7 +229,7 @@ export const useGameStore = create<GameStore>()(
           player: { ...state.player, balance: newBalance, garage: newGarage },
         }));
 
-        get().addLog(`Диагностика ${car.name} завершена. Скрытые дефекты обнаружены!`, 'success');
+        get().addLog(`Диагностика ${car.name} в гараже завершена. Вскрыли все "сюрпризы" от прошлого владельца!`, 'success');
 
         if (roomId) {
           socket.emit('sync_action', {
@@ -266,7 +266,7 @@ export const useGameStore = create<GameStore>()(
           market: newMarket,
         }));
 
-        get().addLog(`Диагностика ${car.name} завершена. Скрытые дефекты обнаружены!`, 'success');
+        get().addLog(`Диагностика лота ${car.name} завершена. Толщиномер не врет — теперь мы знаем правду!`, 'success');
         triggerHaptic('impact', 'light');
 
         if (roomId) {
@@ -304,7 +304,7 @@ export const useGameStore = create<GameStore>()(
           market: newMarket,
         }));
 
-        get().addLog('Список автомобилей обновлен!', 'success');
+        get().addLog('Рынок обновлен! Пригнали свежую партию, налетай!', 'success');
         triggerHaptic('impact', 'medium');
 
         if (roomId) {
@@ -422,7 +422,7 @@ export const useGameStore = create<GameStore>()(
         set((state) => ({
           player: { ...state.player, balance: newBalance, energy: state.player.energy + 1 },
         }));
-        get().addLog('Куплена 1 ед. энергии.', 'success');
+        get().addLog('Закинулся энергетиком. Теперь можно и пару лишних клеток проскочить!', 'success');
         if (roomId) {
           socket.emit('sync_action', {
             roomId,
@@ -446,7 +446,7 @@ export const useGameStore = create<GameStore>()(
           const diceValue = Math.floor(Math.random() * 6) + 1;
           const newPosition = (player.position + diceValue) % 12;
           get().handleDiceRollResult(player.id, diceValue, newPosition);
-          get().addLog(`Вы бросили кубик: ${diceValue}`, 'info');
+          get().addLog(`Кости брошены! Выпало: ${diceValue}. Газуем!`, 'info');
           return;
         }
 
@@ -495,7 +495,7 @@ export const useGameStore = create<GameStore>()(
             currentEvent: cell,
           }));
           get().executeCellAction(cell);
-          get().addLog(`Тактический ход на ${steps} клеток.`, 'info');
+          get().addLog(`Тактический маневр! Проползли на ${steps} клеток. Энергия на исходе.`, 'info');
           return;
         }
 
@@ -517,7 +517,7 @@ export const useGameStore = create<GameStore>()(
           currentEvent: cell,
         }));
         get().executeCellAction(cell);
-        get().addLog(`Тактический ход на ${steps} клеток.`, 'info');
+        get().addLog(`Тактический маневр! Продвинулись на ${steps} клеток. Соперники кусают локти.`, 'info');
         socket.emit('sync_action', { roomId, playerId: player.id, action: 'manualMove', payload: { steps, newPosition } });
       },
       setActiveQuest: (quest) => set({ activeQuest: quest }),
@@ -587,43 +587,67 @@ export const useGameStore = create<GameStore>()(
       executeCellAction: (cell: BoardCell | null) => {
         if (!cell) return;
 
+        const { roomId, player, addLog } = get();
         const ALL_TIERS: CarTier[] = ['Bucket', 'Scrap', 'Business', 'Premium', 'Rarity'];
         let newCars: Car[] = [];
 
         switch (cell.type) {
           case 'buy_bucket':
             newCars = [generateCar('Bucket'), generateCar('Bucket'), generateCar('Bucket')];
+            addLog('Приехал на разборку к дяде Васе. Тут одни вёдра, зато дешево!', 'info');
             break;
           case 'buy_scrap':
             newCars = [generateCar('Scrap'), generateCar('Scrap'), generateCar('Scrap')];
+            addLog('Вижу битьё! Немного шпаклевки, и будет как новая (нет).', 'info');
             break;
           case 'buy_business':
             newCars = [generateCar('Business'), generateCar('Business'), generateCar('Business')];
+            addLog('Опа, солидные аппараты для серьезных людей. Главное — не смотреть на пробег.', 'info');
             break;
           case 'buy_premium':
             newCars = [generateCar('Premium'), generateCar('Premium')];
+            addLog('Зашел в элитный салон. Менеджер смотрит на меня как на нищеброда...', 'info');
             break;
           case 'buy_random': {
             const pick = (): CarTier => ALL_TIERS[Math.floor(Math.random() * ALL_TIERS.length)] as CarTier;
             newCars = [generateCar(pick()), generateCar(pick()), generateCar(pick())];
+            addLog('Автоподборщик прислал варианты. Говорит "не бита, не крашена", верим?', 'info');
             break;
           }
           case 'buy_retro':
             newCars = [generateCar('Rarity')];
+            addLog('Нашел капсулу времени! Владелец — дедушка, ездил только в церковь.', 'info');
             break;
           case 'race':
-            get().addLog('Вы на клетке гонок! Нажмите "Заехать", чтобы испытать удачу.', 'info');
+            addLog('Тут пахнет жженой резиной. Кто рискнет заехать на интерес?', 'info');
             break;
           case 'rent':
-            get().addLog('Клетка проката. Вы можете сдать машину и получить пассивный доход.', 'info');
+            addLog('Площадка проката. Можно сдать свой хлам в аренду таксистам.', 'info');
+            break;
+          case 'sale':
+            addLog('Чапаевка! Место, где сбываются мечты и продаются "идеальные" машины.', 'info');
+            break;
+          case 'repair':
+            addLog('Заехал в сервис. Мастера уже потирают руки, видя твой кошелек.', 'info');
+            break;
+          case 'special_repair':
+            addLog('Сервис "Пехота". Тут делают быстро, дешево и со скидкой для своих.', 'info');
             break;
           default:
+            addLog(`Вы притопали на клетку: ${cell.name}.`, 'info');
             break;
         }
 
         if (newCars.length > 0) {
           set({ market: newCars });
-          get().addLog(`Рынок обновлен: ${newCars.length} новых лота.`, 'info');
+          if (roomId) {
+            socket.emit('sync_action', {
+              roomId,
+              playerId: player.id,
+              action: 'updateMarket',
+              payload: newCars,
+            });
+          }
         }
       },
       handleDiceRollResult: (playerId, diceValue, newPosition) => {
@@ -644,12 +668,12 @@ export const useGameStore = create<GameStore>()(
              if (isBad) {
                 const fine = 100 + Math.floor(Math.random() * 200);
                 set((s) => ({ player: { ...s.player, balance: Decimal.max(0, new Decimal(s.player.balance).sub(fine)).toFixed(0) } }));
-                get().addLog(`🚓 ГАИ! Штраф за превышение: $${fine}`, 'error');
+                get().addLog(`🚓 ГАИ! Товарищ лейтенант углядел тонировку. Штраф: $${fine}`, 'error');
                 triggerHaptic('notification', 'error');
              } else {
                 const bonus = 50 + Math.floor(Math.random() * 150);
                 set((s) => ({ player: { ...s.player, balance: new Decimal(s.player.balance).add(bonus).toFixed(0) } }));
-                get().addLog(`🍀 Удача! Нашли кошелек на обочине: +$${bonus}`, 'success');
+                get().addLog(`🍀 Удача! Перекупская чуйка не подвела — нашел заначку в бардачке: +$${bonus}`, 'success');
                 triggerHaptic('notification', 'success');
              }
           }
@@ -702,6 +726,7 @@ export const useGameStore = create<GameStore>()(
           
           // Every 5 turns, update news
           if (nextTurns % 5 === 0) {
+            get().addLog('--- НОВЫЙ ДЕНЬ НА РЫНКЕ ---', 'info');
             get().updateNews();
           }
           return;

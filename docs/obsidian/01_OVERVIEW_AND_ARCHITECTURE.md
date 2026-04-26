@@ -7,32 +7,22 @@
 
 ## 1. Концепция
 
-**Перекуп D6** — настольная бизнес-стратегия в формате Telegram Mini App (TMA). Игрок выступает в роли перекупщика автомобилей: покупает битые и дешёвые машины, чинит их, перепродаёт с прибылью.
-
-- **Режимы:** одиночный (vs бот «Боря») и мультиплеер до 4 человек
-- **Цель:** накопить `$500,000` (настраивается: `$500k` / `$1,000,000`)
-- **Движок хода:** кубик D6 + система тактической энергии
-
----
-
-## 2. Стек технологий
-
-| Слой | Технология | Версия |
+**Перекуп D6** — настольная бизнес-стратегия в формате Telegram Mini App (TMA). Игрок выступает в роли перекупщика автомобилей: покуп| Слой | Технология | Версия |
 |---|---|---|
 | Frontend фреймворк | React | 19.x |
 | Сборщик | Vite | последняя |
 | Состояние | Zustand (slice pattern) | 5.x |
+| Валидация / Типы | Zod | последняя |
 | Финансовые расчёты | Decimal.js | 10.x |
 | Анимации | Framer Motion | 12.x |
 | Иконки | Lucide React | последняя |
-| Стили | Tailwind CSS v4 | 4.x |
+| Стили | Vanilla CSS | — |
 | Telegram SDK | @telegram-apps/sdk-react | 3.x |
 | WebSocket | Socket.IO (client + server) | 4.x |
 | Backend | Node.js + Express + Socket.IO | Node 20 |
-| Telegram бот | Telegraf | 4.x |
-| TypeScript | strict mode | 6.x |
-| Деплой | Fly.io (или Railway.app) | — |
-| Контейнер (dev) | Docker / Distrobox Arch | — |
+| Telegram бот | Node-telegram-bot-api | последняя |
+| TypeScript | strict mode | последняя |
+| Деплой | Railway.app | — |
 
 ---
 
@@ -40,40 +30,50 @@
 
 ```
 ┌─────────────────────────────────────────────────┐
-│  UI LAYER (React Components)                    │
-│  Только отображение. Никакой бизнес-логики.     │
-│  Отправляет действия → получает стейт           │
+│  UI LAYER (packages/client)                     │
+│  React компоненты, Framer Motion, Zustand       │
+│  Только отображение и вызов экшенов стора.      │
 ├─────────────────────────────────────────────────┤
-│  DOMAIN LAYER (чистый TypeScript)               │
+│  DOMAIN LAYER (packages/shared)                 │
 │  businessLogic.ts — все расчёты цен/налогов     │
 │  carDatabase.ts, defectDatabase.ts — контент    │
-│  Независим от React и Telegram                  │
+│  dtos/ — Zod схемы (источник правды для типов)  │
 ├─────────────────────────────────────────────────┤
-│  INFRASTRUCTURE LAYER                           │
-│  Zustand Store (slices)                         │
-│  Socket.IO клиент                               │
-│  TMA SDK / CloudStorage                         │
+│  INFRASTRUCTURE LAYER (packages/server)         │
+│  Express + Socket.IO сервер                     │
+│  Управление комнатами, Bot API                  │
 └─────────────────────────────────────────────────┘
 ```
 
 ---
 
-## 4. Структура проекта (монорепо)
+## 4. Структура проекта (NPM Workspaces Monorepo)
 
 ```
-perekup-v2/
-├── server/
-│   ├── index.ts              # Express + Socket.IO сервер (порт 3000)
-│   ├── roomManager.ts        # Управление комнатами в памяти
-│   └── socketHandlers.ts     # Обработчики сокет-событий
-├── src/
-│   ├── shared/
-│   │   └── types.ts          # ЕДИНСТВЕННЫЙ источник правды (типы + GAME_MAP)
-│   ├── domain/
-│   │   ├── businessLogic.ts  # Все финансовые функции (Decimal.js)
-│   │   ├── carDatabase.ts    # База 30+ автомобилей
-│   │   ├── defectDatabase.ts # База 20+ дефектов
-│   │   └── iconMapping.ts    # Маппинг иконок клеток
+TGPEREKUP/
+├── packages/
+│   ├── shared/               # ОБЩИЙ ПАКЕТ
+│   │   ├── src/
+│   │   │   ├── dtos/         # Zod схемы и типы (Car, Player, Room)
+│   │   │   ├── businessLogic.ts # Ядро расчётов (Decimal.js)
+│   │   │   ├── carDatabase.ts   # База 30+ автомобилей
+│   │   │   ├── defectDatabase.ts # База 20+ дефектов
+│   │   │   └── types.ts      # Системные типы и GAME_MAP
+│   ├── client/               # ФРОНТЕНД
+│   │   ├── src/
+│   │   │   ├── components/   # React компоненты (Market, Garage, Board)
+│   │   │   ├── store/        # Zustand (gameStore.ts)
+│   │   │   ├── lib/          # TMA Provider, Socket instance
+│   │   │   └── assets/       # CSS и статика
+│   └── server/               # БЭКЕНД
+│       ├── src/
+│       │   ├── index.ts      # Запуск Express + Bot
+│       │   ├── roomManager.ts # Логика комнат
+│       │   └── socketHandlers.ts # Обработка событий сети
+├── Dockerfile                # Сборка всех пакетов в один образ
+├── railway.json              # Конфигурация деплоя
+└── package.json              # Настройка workspaces
+``` клеток
 │   ├── store/
 │   │   ├── gameStore.ts      # Сборка всех слайсов
 │   │   ├── storage.ts        # TWAStorage (Telegram CloudStorage / localStorage)
@@ -217,54 +217,40 @@ socket.on('dice_roll', ({ roomId, playerId }) => {
 
 ---
 
-## 9. Dockerfile (multi-stage)
+## 9. Dockerfile (Monorepo build)
 
 ```dockerfile
-# Stage 1: Build frontend
-FROM node:20-alpine AS builder
+FROM node:20-slim AS base
 WORKDIR /app
-COPY package*.json ./
-RUN npm ci
-COPY . .
-RUN npm run build
+ENV NODE_ENV=production
 
-# Stage 2: Production server
-FROM node:20-alpine
-WORKDIR /app
+# Install dependencies for all packages
 COPY package*.json ./
-RUN npm ci --omit=dev
-COPY --from=builder /app/dist ./dist
-COPY server ./server
-COPY src/shared ./src/shared
+COPY packages/shared/package*.json ./packages/shared/
+COPY packages/server/package*.json ./packages/server/
+COPY packages/client/package*.json ./packages/client/
+RUN npm ci --include=dev
+
+# Copy source and configs
+COPY tsconfig.base.json ./
+COPY packages/shared/ ./packages/shared/
+COPY packages/server/ ./packages/server/
+COPY packages/client/ ./packages/client/
+
+# Build shared first
+RUN npm run build -w @tgperekup/shared
+# Build client (generates dist for static serving)
+RUN npm run build -w @tgperekup/client
+# Build server
+RUN npm run build -w @tgperekup/server
+
 EXPOSE 3000
-CMD ["npm", "start"]
+CMD ["node", "packages/server/dist/src/index.js"]
 ```
-
-Сервер Express раздаёт SPA из `dist/` + обрабатывает Socket.IO.
 
 ---
 
-## 10. Деплой на Fly.io
+## 10. Деплой на Railway.app
 
-```toml
-# fly.toml
-app = "perekup-d6"
-primary_region = "fra"
-
-[build]
-  dockerfile = "Dockerfile"
-
-[http_service]
-  internal_port = 3000
-  force_https = true
-  auto_stop_machines = true
-  auto_start_machines = true
-  min_machines_running = 1
-```
-
-```bash
-# Первый деплой
-fly launch
-fly secrets set BOT_TOKEN=xxx ALLOWED_ORIGINS=https://your-domain.com
-fly deploy
-```
+Проект настроен на автоматический деплой при пуше в `main`. Конфигурация в `railway.json`.
+Необходимые переменные окружения: `BOT_TOKEN`, `PORT`.

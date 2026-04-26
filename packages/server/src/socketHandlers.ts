@@ -158,13 +158,13 @@ export const registerSocketHandlers = (
 
 function transactionErrorMessage(error: roomManager.TransactionError): string {
   switch (error) {
-    case 'not_your_turn':        return 'Сейчас не ваш ход';
-    case 'insufficient_balance': return 'Недостаточно средств для покупки';
-    case 'car_is_locked':        return 'Автомобиль заложен по долговому договору';
-    case 'car_not_found':        return 'Автомобиль не найден в рынке или гараже';
-    case 'player_not_found':     return 'Игрок не найден в комнате';
-    case 'room_not_found':       return 'Комната не найдена';
-    case 'sale_blocked_legal':   return 'Продажа запрещена: у авто юридический запрет регистрационных действий';
+    case 'not_your_turn':        return 'Куда прёшь? Сейчас не твой черёд кости бросать!';
+    case 'insufficient_balance': return 'В карманах ветер свистит! Не хватает денег на этот аппарат.';
+    case 'car_is_locked':        return 'Машина «в стопе» — заложена под долги. Не трогай!';
+    case 'car_not_found':        return 'Такой тачки нет ни на рынке, ни в гараже. Призрак?';
+    case 'player_not_found':     return 'Ты кто такой? Игрок не найден в этой тусовке.';
+    case 'room_not_found':       return 'Комната испарилась. Похоже, лавочку прикрыли.';
+    case 'sale_blocked_legal':   return 'Юридический запрет! Эту колымагу на учет не поставить.';
   }
 }
 
