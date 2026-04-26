@@ -194,6 +194,7 @@ export interface GameState {
 // ─── Socket.IO Sync Actions ───────────────────────────────────────────────────
 
 export type SyncActionPayload =
+  // ── Player market actions ──────────────────────────────────────────────────
   | { action: 'buyCar';                payload: string }
   | { action: 'sellCar';               payload: string }
   | { action: 'repairCar';             payload: { carId: string; defectId: string; isDiscounted: boolean } }
@@ -201,17 +202,23 @@ export type SyncActionPayload =
   | { action: 'manualMove';            payload: { steps: number; newPosition: number } }
   | { action: 'buyEnergy';             payload: null }
   | { action: 'diagnoseCar';           payload: string }
+  | { action: 'diagnoseMarketCar';     payload: string }
+  | { action: 'refreshMarket';         payload: null }
   | { action: 'updateMarket';          payload: Car[] }
   | { action: 'newsUpdate';            payload: GameNews }
   | { action: 'victory';               payload: null }
+  // ── P2P Debt / Perekup Hub ────────────────────────────────────────────────
   | { action: 'loanOffer';             payload: Debt }
   | { action: 'loanAccepted';          payload: Debt }
-  | { action: 'repayDebt';             payload: string }
-  | { action: 'confiscateCar';         payload: string }
-  | { action: 'raceLobbyOpen';         payload: { initiatorId: string; participants: string[]; bet: number; startTime: number } }
-  | { action: 'raceChallengeInitiated'; payload: { initiatorId: string; participants: string[]; bet: number; startTime: number; targetId: string } }
+  | { action: 'repayDebt';             payload: string }        // debtId
+  | { action: 'confiscateCar';         payload: string }        // carId
+  // ── Race Duel ─────────────────────────────────────────────────────────────
+  | { action: 'raceLobbyOpen';         payload: { initiatorId: string; bet: number } }
+  | { action: 'raceChallengeInitiated'; payload: { initiatorId: string; targetId: string; bet: number } }
+  | { action: 'raceAccept';            payload: { initiatorId: string } }
+  | { action: 'raceDecline';           payload: { initiatorId: string } }
   | { action: 'raceJoin';              payload: { initiatorId: string } }
-  | { action: 'raceResults';           payload: { winnerId: string; loserId: string; bet: number } };
+  | { action: 'raceResults';           payload: { winnerId: string; loserId: string; bet: number; logs: string[] } };
 
 // ─── Socket.IO Events ─────────────────────────────────────────────────────────
 

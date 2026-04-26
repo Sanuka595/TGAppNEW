@@ -1,20 +1,27 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { X, ShoppingCart, Info, Wrench, Truck, Trophy, Flag } from 'lucide-react';
+import { X, ShoppingCart, Info, Wrench, Truck, Trophy } from 'lucide-react';
 import { useGameStore } from '../../store/gameStore';
 import { Button } from '../ui/Button.js';
 import { triggerHaptic } from '../../lib/tmaProvider';
+import { Decimal } from 'decimal.js';
 
 export const ActionModal: React.FC = () => {
-  const { 
-    currentEvent, 
-    setCurrentEvent, 
-    player, 
-    repairCar, 
-    rentCar, 
+  const {
+    currentEvent,
+    setCurrentEvent,
+    player,
+    players,
+    repairCar,
+    rentCar,
     diagnoseCar,
-    startRace
+    startRace,
+    initiateRaceDuel,
+    roomId,
   } = useGameStore();
+
+  const [raceBet, setRaceBet] = useState(500);
+  const [raceTargetId, setRaceTargetId] = useState('');
 
   if (!currentEvent) return null;
 
@@ -163,27 +170,83 @@ export const ActionModal: React.FC = () => {
       }
       case 'race': {
         const hasCars = (player.garage || []).length > 0;
+        const maxBet = Math.floor(new Decimal(player.balance).div(2).toNumber());
+        const opponents = players.filter(p => p.id !== player.id);
+        const isMultiplayer = !!roomId && opponents.length > 0;
+
+        if (isMultiplayer) {
+          return (
+            <div className="space-y-4">
+              <div className="bg-rose-500/10 border border-rose-500/20 p-4 rounded-2xl">
+                <div className="flex items-center space-x-3 mb-2">
+                  <Trophy className="text-rose-400" size={20} />
+                  <h3 className="font-bold text-white uppercase tracking-tighter">Дуэль на трассе</h3>
+                </div>
+                <p className="text-sm text-white/60">Выбери соперника, установи ставку. Победитель берёт всё. Бонус класса: Rarity +2, Premium +1, Scrap −1.</p>
+              </div>
+
+              <div>
+                <label className="text-[10px] text-white/30 uppercase font-black tracking-widest block mb-2">Вызов кому?</label>
+                <div className="space-y-2">
+                  {opponents.map(op => (
+                    <button
+                      key={op.id}
+                      onClick={() => setRaceTargetId(op.id)}
+                      className={`w-full flex justify-between items-center px-4 py-3 rounded-2xl border transition-all ${
+                        raceTargetId === op.id
+                          ? 'bg-rose-500/20 border-rose-400/40 text-white'
+                          : 'bg-white/5 border-white/10 text-white/60'
+                      }`}
+                    >
+                      <span className="font-bold text-sm">{op.name ?? op.id.substring(0, 4).toUpperCase()}</span>
+                      <span className="text-xs opacity-60">${new Decimal(op.balance).toFixed(0)}</span>
+                    </button>
+                  ))}
+                </div>
+              </div>
+
+              <div>
+                <label className="text-[10px] text-white/30 uppercase font-black tracking-widest block mb-2">
+                  Ставка (макс. ${maxBet})
+                </label>
+                <input
+                  type="range" min={100} max={maxBet} step={100} value={raceBet}
+                  onChange={e => setRaceBet(Number(e.target.value))}
+                  className="w-full accent-rose-400"
+                />
+                <p className="text-center text-lg font-black text-rose-400 mt-1">${raceBet}</p>
+              </div>
+
+              <Button
+                disabled={!hasCars || !raceTargetId || raceBet > maxBet}
+                onClick={() => { triggerHaptic('impact', 'heavy'); initiateRaceDuel(raceTargetId, raceBet); handleClose(); }}
+                variant="primary"
+                className="w-full"
+              >
+                <Trophy size={18} /> Бросить перчатку
+              </Button>
+              {!hasCars && <p className="text-[10px] text-rose-400 text-center font-bold uppercase">Нужна машина в гараже!</p>}
+            </div>
+          );
+        }
+
+        // Solo fallback
         return (
           <div className="space-y-4">
-            <div className="bg-rose-500/10 border border-rose-500/20 p-4 rounded-2xl mb-4">
+            <div className="bg-rose-500/10 border border-rose-500/20 p-4 rounded-2xl">
               <div className="flex items-center space-x-3 mb-2">
                 <Trophy className="text-rose-400" size={20} />
                 <h3 className="font-bold text-white uppercase tracking-tighter">Уличная гонка</h3>
               </div>
-              <p className="text-sm text-white/60">Испытайте свою удачу и техническое состояние авто! Ставка: $500. Победа удвоит ставку, поражение — заберет её.</p>
+              <p className="text-sm text-white/60">Быстрый заезд против судьбы. Ставка: $500. Победа удвоит ставку.</p>
             </div>
-            
             <Button
-              disabled={!hasCars || Number(player.balance) < 500}
+              disabled={!hasCars || new Decimal(player.balance).lt(500)}
               onClick={() => { triggerHaptic('impact', 'heavy'); startRace(500); handleClose(); }}
-              variant="primary"
-              className="w-full py-4 rounded-2xl flex items-center justify-center space-x-2"
+              variant="primary" className="w-full"
             >
-              <Trophy size={18} />
-              <span>Заехать ($500)</span>
+              <Trophy size={18} /> Заехать ($500)
             </Button>
-            {!hasCars && <p className="text-[10px] text-rose-400 text-center font-bold uppercase">Нужна машина в гараже!</p>}
-            {hasCars && Number(player.balance) < 500 && <p className="text-[10px] text-rose-400 text-center font-bold uppercase">Недостаточно денег!</p>}
           </div>
         );
       }

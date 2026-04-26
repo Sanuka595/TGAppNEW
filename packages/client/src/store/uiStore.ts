@@ -1,7 +1,7 @@
 import { create } from 'zustand';
 import { persist, createJSONStorage } from 'zustand/middleware';
 
-export type ActiveTab = 'board' | 'garage' | 'market';
+export type ActiveTab = 'board' | 'garage' | 'market' | 'deals';
 
 interface UiState {
   activeTab: ActiveTab;

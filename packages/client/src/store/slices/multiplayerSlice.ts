@@ -1,11 +1,4 @@
-import type { Player, Debt, RoomState, SyncActionPayload } from '@tgperekup/shared';
-
-export interface RaceState {
-  initiatorId: string;
-  participants: string[];
-  bet: number;
-  startTime: number;
-}
+import type { Debt, Player, RaceDuel, RoomState, SyncActionPayload } from '@tgperekup/shared';
 
 export interface RemoteAnimationState {
   playerId: string;
@@ -22,28 +15,36 @@ export interface MultiplayerState {
   currentTurnIndex: number;
   winCondition: number;
   winnerId: string | null;
-  activeRace: RaceState | null;
+  activeRace: RaceDuel | null;
   remoteAnimation: RemoteAnimationState | null;
+  /** Set when server sends a pending race challenge targeting THIS player. */
+  pendingRaceChallenge: RaceDuel | null;
 }
 
 export interface MultiplayerActions {
-  /** Create a new room and become the host. */
   createRoom: (winCondition: number) => void;
-  /** Join an existing room by its 6-char code. */
   joinRoom: (roomId: string) => void;
-  /** Leave the current room and reset multiplayer state. */
   leaveRoom: () => void;
-  /** Sync the full room state received from the server. */
   syncRoomState: (roomState: RoomState) => void;
-  /** Apply a dice roll result from the server (own or remote player). */
   handleDiceRollResult: (playerId: string, diceValue: number, newPosition: number) => void;
-  /** Apply a sync_action broadcast from a remote player. */
   handleRemoteAction: (data: { playerId: string } & SyncActionPayload) => void;
-  /** Advance currentTurnIndex to the next player in the room. */
   passTurn: () => void;
-  setActiveRace: (race: RaceState | null) => void;
+  setActiveRace: (race: RaceDuel | null) => void;
+  setPendingRaceChallenge: (race: RaceDuel | null) => void;
   setRemoteAnimation: (anim: RemoteAnimationState | null) => void;
   setWinnerId: (id: string | null) => void;
+  /** Post a P2P loan offer to the room's offer board. */
+  offerLoan: (amount: string, interestPct: number, turns: number) => void;
+  /** Accept a pending loan offer using a garage car as collateral. */
+  acceptLoan: (debtId: string, collateralCarId: string) => void;
+  /** Repay an active debt early. */
+  repayDebt: (debtId: string) => void;
+  /** Initiate a race duel against a specific opponent. */
+  initiateRaceDuel: (targetId: string, bet: number) => void;
+  /** Accept an incoming race challenge — server resolves immediately. */
+  acceptRaceDuel: (initiatorId: string) => void;
+  /** Decline an incoming race challenge. */
+  declineRaceDuel: (initiatorId: string) => void;
 }
 
 export type MultiplayerSlice = MultiplayerState & MultiplayerActions;
@@ -58,4 +59,5 @@ export const initialMultiplayerState: Omit<MultiplayerState, 'hostId'> = {
   winnerId: null,
   activeRace: null,
   remoteAnimation: null,
+  pendingRaceChallenge: null,
 };

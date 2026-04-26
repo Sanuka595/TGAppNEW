@@ -1,7 +1,7 @@
 import { create } from 'zustand';
 import { persist, createJSONStorage } from 'zustand/middleware';
 import { Decimal } from 'decimal.js';
-import type { Player, GameNews } from '@tgperekup/shared';
+import type { Player, GameNews, Debt } from '@tgperekup/shared';
 import { GAME_MAP, NEWS_DB, calculateCurrentMarketValue, calculateSellPrice, generateCar, calculateCarHealth, calculateRentIncome, type BoardCell, type Car, type CarTier } from '@tgperekup/shared';
 import { tmaStorage } from './storage';
 import { triggerHaptic } from '../lib/tmaProvider';
@@ -38,7 +38,6 @@ export interface GameStore extends PlayerSlice, SoloSlice, MultiplayerSlice {
   rentCar: (carId: string) => void;
   startRace: (bet: number) => void;
   buyEnergy: () => void;
-  
   // Dev tools
   devAddMoney: (amount: string) => void;
   devAddEnergy: (amount: number) => void;
@@ -560,19 +559,20 @@ export const useGameStore = create<GameStore>()(
         const myId = get().player.id;
         const inRoom = roomState.players.some(p => p.id === myId);
         const me = roomState.players.find(p => p.id === myId);
-        
+
         const myIndex = roomState.players.findIndex(p => p.id === myId);
         const isNowMyTurn = inRoom && roomState.currentTurnIndex === myIndex;
         const wasMyTurn = get().currentTurnIndex === get().players.findIndex(p => p.id === myId);
         const turnChangedToMe = isNowMyTurn && !wasMyTurn;
 
+        // Detect race challenge directed at this player
+        const incomingRace = roomState.activeRace ?? null;
+        const isPendingForMe = incomingRace?.status === 'pending_acceptance' && incomingRace.targetId === myId;
+
         set((state) => ({
           players: roomState.players,
           market: roomState.market,
-          player: {
-            ...state.player,
-            ...me,
-          },
+          player: { ...state.player, ...me },
           garage: me?.garage ?? state.garage,
           roomId: inRoom ? roomState.id : null,
           isHost: inRoom ? roomState.hostId === myId : false,
@@ -582,7 +582,15 @@ export const useGameStore = create<GameStore>()(
           hostId: roomState.hostId,
           hasRolledThisTurn: turnChangedToMe ? false : state.hasRolledThisTurn,
           lastDiceRoll: turnChangedToMe ? 0 : state.lastDiceRoll,
+          activeDebts: roomState.activeDebts ?? state.activeDebts,
+          activeRace: incomingRace,
+          pendingRaceChallenge: isPendingForMe ? incomingRace : null,
         }));
+
+        if (roomState.winnerId) {
+          get().addLog(`🏆 ПОБЕДА! Игрок ${roomState.winnerId.substring(0,4).toUpperCase()} достиг цели!`, 'success');
+          triggerHaptic('notification', 'success');
+        }
       },
       executeCellAction: (cell: BoardCell | null) => {
         if (!cell) return;
@@ -688,33 +696,81 @@ export const useGameStore = create<GameStore>()(
         }
       },
       handleRemoteAction: (data) => {
-        // Example: if a remote player buys a car, update market
-        if (data.action === 'buyCar' && typeof data.payload === 'string') {
-          set((state) => ({
-            market: state.market.filter((car) => car.id !== data.payload),
-          }));
-        }
-        // Example: if a remote player moves manually
-        if (data.action === 'manualMove' && typeof data.payload === 'object' && data.payload !== null && 'steps' in data.payload && 'newPosition' in data.payload) {
-          const { playerId, payload } = data;
-          const { steps, newPosition } = payload as { steps: number; newPosition: number };
-          set((state) => ({
-            players: state.players.map((p) =>
-              p.id === playerId ? { ...p, position: newPosition } : p
-            ),
-            remoteAnimation: { playerId, diceValue: steps, fromPosition: state.players.find(p => p.id === playerId)?.position ?? 0 },
-          }));
-          get().addLog(`Игрок ${playerId} сделал тактический ход на ${steps} клеток.`, 'info');
-        }
-        // Example: news update
-        if (data.action === 'newsUpdate' && typeof data.payload === 'object' && data.payload !== null && 'id' in data.payload) {
-          set({ activeEvent: data.payload as GameNews });
-          get().addLog(`[НОВОСТИ] ${ (data.payload as GameNews).title }`, 'info');
-        }
-        // Example: victory
-        if (data.action === 'victory') {
-          set({ winnerId: data.playerId });
-          get().addLog(`Игрок ${data.playerId} победил!`, 'success');
+        switch (data.action) {
+          case 'buyCar':
+            set((s) => ({ market: s.market.filter(c => c.id !== data.payload) }));
+            break;
+
+          case 'manualMove': {
+            const { playerId, payload } = data;
+            const { steps, newPosition } = payload;
+            set((s) => ({
+              players: s.players.map(p => p.id === playerId ? { ...p, position: newPosition } : p),
+              remoteAnimation: { playerId, diceValue: steps, fromPosition: s.players.find(p => p.id === playerId)?.position ?? 0 },
+            }));
+            get().addLog(`Игрок ${playerId.substring(0,4).toUpperCase()} сделал тактический ход.`, 'info');
+            break;
+          }
+
+          case 'newsUpdate':
+            set({ activeEvent: data.payload });
+            get().addLog(`📰 ${data.payload.title}`, 'info');
+            break;
+
+          case 'victory':
+            set({ winnerId: data.playerId });
+            get().addLog(`🏆 Игрок ${data.playerId.substring(0,4).toUpperCase()} победил!`, 'success');
+            triggerHaptic('notification', 'success');
+            break;
+
+          case 'loanOffer':
+            get().addLog(`💸 ${data.playerId.substring(0,4).toUpperCase()} разместил кредитный оффер на $${data.payload.amount}`, 'info');
+            break;
+
+          case 'loanAccepted':
+            get().addLog(`🤝 Займ подписан! Тачка под залогом.`, 'info');
+            triggerHaptic('notification', 'success');
+            break;
+
+          case 'repayDebt':
+            get().addLog(`✅ Долг погашен — залог освобождён!`, 'success');
+            break;
+
+          case 'confiscateCar':
+            get().addLog(`🚨 Машина конфискована по долгу!`, 'error');
+            triggerHaptic('notification', 'error');
+            break;
+
+          case 'raceChallengeInitiated':
+            get().addLog(`🏎️ ${data.payload.initiatorId.substring(0,4).toUpperCase()} вызвал ${data.payload.targetId.substring(0,4).toUpperCase()} на дуэль! Ставка: $${data.payload.bet}`, 'info');
+            break;
+
+          case 'raceAccept':
+            get().addLog(`🏁 Вызов принят! Гонка начинается...`, 'info');
+            break;
+
+          case 'raceDecline':
+            set({ activeRace: null, pendingRaceChallenge: null });
+            get().addLog(`❌ Гонка отклонена. Трус!`, 'info');
+            break;
+
+          case 'raceResults': {
+            const { winnerId, loserId, bet, logs } = data.payload;
+            const myId = get().player.id;
+            logs.forEach(l => get().addLog(l, 'info'));
+            if (winnerId === myId) {
+              get().addLog(`🏆 ВЫ ВЫИГРАЛИ гонку! +$${bet}`, 'success');
+              triggerHaptic('notification', 'success');
+            } else if (loserId === myId) {
+              get().addLog(`💀 Проиграли гонку. -$${bet}`, 'error');
+              triggerHaptic('notification', 'error');
+            }
+            set({ pendingRaceChallenge: null });
+            break;
+          }
+
+          default:
+            break;
         }
       },
       passTurn: () => {
@@ -745,7 +801,77 @@ export const useGameStore = create<GameStore>()(
 
         socket.emit('pass_turn', { roomId, playerId: player.id });
       },
+      // ── P2P Debt / Perekup Hub ──────────────────────────────────────────────
+      offerLoan: (amount, interestPct, turns) => {
+        const { player, roomId } = get();
+        if (!roomId) { get().addLog('Кредиты доступны только в мультиплеере!', 'error'); return; }
+        const interest = new Decimal(amount).mul(interestPct / 100).toFixed(0);
+        const totalToPay = new Decimal(amount).add(interest).toFixed(0);
+        const debt: Debt = {
+          id: Math.random().toString(36).substring(2, 9),
+          lenderId: player.id,
+          amount,
+          interest,
+          totalToPay,
+          turnsLeft: turns,
+          initialTurns: turns,
+          status: 'pending',
+        };
+        socket.emit('sync_action', { roomId, playerId: player.id, action: 'loanOffer', payload: debt });
+        get().addLog(`Оффер размещён: $${amount} под ${interestPct}% на ${turns} ходов.`, 'success');
+        triggerHaptic('impact', 'medium');
+      },
+
+      acceptLoan: (debtId, collateralCarId) => {
+        const { player, roomId, activeDebts } = get();
+        if (!roomId) { get().addLog('Займы доступны только в мультиплеере!', 'error'); return; }
+        const debt = activeDebts.find(d => d.id === debtId);
+        if (!debt) { get().addLog('Оффер не найден.', 'error'); return; }
+        const fullDebt: Debt = { ...debt, borrowerId: player.id, collateralCarId, status: 'active' };
+        socket.emit('sync_action', { roomId, playerId: player.id, action: 'loanAccepted', payload: fullDebt });
+        get().addLog('Займ принят! Твоя тачка теперь в залоге. Не косячь.', 'info');
+        triggerHaptic('notification', 'success');
+      },
+
+      repayDebt: (debtId) => {
+        const { player, roomId } = get();
+        if (!roomId) return;
+        socket.emit('sync_action', { roomId, playerId: player.id, action: 'repayDebt', payload: debtId });
+        get().addLog('Отправлен запрос на погашение долга.', 'info');
+        triggerHaptic('impact', 'medium');
+      },
+
+      // ── Race Duel ──────────────────────────────────────────────────────────
+      initiateRaceDuel: (targetId, bet) => {
+        const { player, roomId, garage } = get();
+        if (!roomId) { get().addLog('Гонки только в мультиплеере!', 'error'); return; }
+        if (garage.length === 0) { get().addLog('Нужна хотя бы одна машина в гараже!', 'error'); return; }
+        const maxBet = Math.floor(new Decimal(player.balance).div(2).toNumber());
+        if (bet > maxBet) { get().addLog(`Максимальная ставка — половина баланса ($${maxBet})!`, 'error'); return; }
+        socket.emit('sync_action', { roomId, playerId: player.id, action: 'raceChallengeInitiated', payload: { initiatorId: player.id, targetId, bet } });
+        get().addLog(`Вызов брошен ${targetId.substring(0,4).toUpperCase()}! Ставка $${bet}. Ждём ответа...`, 'info');
+        triggerHaptic('impact', 'heavy');
+      },
+
+      acceptRaceDuel: (initiatorId) => {
+        const { player, roomId } = get();
+        if (!roomId) return;
+        socket.emit('sync_action', { roomId, playerId: player.id, action: 'raceAccept', payload: { initiatorId } });
+        set({ pendingRaceChallenge: null });
+        get().addLog('Вызов принят! ПОЕХАЛИ!', 'success');
+        triggerHaptic('impact', 'heavy');
+      },
+
+      declineRaceDuel: (initiatorId) => {
+        const { player, roomId } = get();
+        if (!roomId) return;
+        socket.emit('sync_action', { roomId, playerId: player.id, action: 'raceDecline', payload: { initiatorId } });
+        set({ pendingRaceChallenge: null, activeRace: null });
+        get().addLog('Ты слился. Честно.', 'info');
+      },
+
       setActiveRace: (race) => set({ activeRace: race }),
+      setPendingRaceChallenge: (race) => set({ pendingRaceChallenge: race }),
       setRemoteAnimation: (anim) => set({ remoteAnimation: anim }),
       setWinnerId: (id) => set({ winnerId: id }),
       // Dev Tools Implementation

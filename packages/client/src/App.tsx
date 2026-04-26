@@ -5,6 +5,8 @@ import { GarageView } from './components/game/GarageView';
 import { MarketView } from './components/game/MarketView';
 import { ActionModal } from './components/game/ActionModal';
 import { MultiplayerModal } from './components/game/MultiplayerModal';
+import { DealsView } from './components/game/DealsView';
+import { RaceModal } from './components/game/RaceModal';
 import { useGameStore, initSocketListeners } from './store/gameStore';
 import { useUiStore } from './store/uiStore';
 import { useTelegram } from './hooks/useTelegram';
@@ -76,6 +78,8 @@ export default function App(): JSX.Element {
         return <GarageView />;
       case 'market':
         return <MarketView />;
+      case 'deals':
+        return <DealsView />;
       case 'board':
       default:
         return (
@@ -115,6 +119,7 @@ export default function App(): JSX.Element {
       {renderContent()}
       <ActionModal />
       <MultiplayerModal />
+      <RaceModal />
       <DevPanel />
     </MainLayout>
   );

@@ -4,61 +4,80 @@ export interface CarModel {
   name: string;
   tier: CarTier;
   basePriceRange: [number, number];
+  description: string;
 }
 
 export const CAR_MODELS_DB: CarModel[] = [
-  // --- BUCKET ($800–$2,000) ---
-  { name: 'Lada 2109',          tier: 'Bucket',  basePriceRange: [800,  1200] },
-  { name: 'Daewoo Lanos',       tier: 'Bucket',  basePriceRange: [900,  1400] },
-  { name: 'VW Golf Mk3',        tier: 'Bucket',  basePriceRange: [700,  1500] },
-  { name: 'Opel Astra G',       tier: 'Bucket',  basePriceRange: [600,  1300] },
-  { name: 'Ford Mondeo Mk2',    tier: 'Bucket',  basePriceRange: [700,  1600] },
-  { name: 'BMW 3 Series E36',   tier: 'Bucket',  basePriceRange: [1000, 2000] },
-  { name: 'Audi A4 B5',         tier: 'Bucket',  basePriceRange: [800,  1800] },
-  { name: 'Honda Civic VI',     tier: 'Bucket',  basePriceRange: [1100, 1900] },
-  { name: 'VW Passat B3',       tier: 'Bucket',  basePriceRange: [850,  1600] },
-  { name: 'Toyota Corolla E110', tier: 'Bucket',  basePriceRange: [1200, 2000] },
+  // ─── BUCKET ($800–$2,000) ───────────────────────────────────────────────────
+  { name: 'Lada 2109',          tier: 'Bucket',  basePriceRange: [800,  1200], description: 'Классика жанра. Карбюратор, ручник, запах советской эпохи.' },
+  { name: 'Daewoo Lanos',       tier: 'Bucket',  basePriceRange: [900,  1400], description: 'Любимец таксистов и студентов. Умирает достойно.' },
+  { name: 'VW Golf Mk3',        tier: 'Bucket',  basePriceRange: [700,  1500], description: 'Немецкое качество... 1993 года. Ключ на старт.' },
+  { name: 'Opel Astra G',       tier: 'Bucket',  basePriceRange: [600,  1300], description: 'Дедовский аппарат. Продавец клянется — не гнилая.' },
+  { name: 'Ford Mondeo Mk2',    tier: 'Bucket',  basePriceRange: [700,  1600], description: 'Бизнес-класс из прошлого тысячелетия.' },
+  { name: 'BMW 3 Series E36',   tier: 'Bucket',  basePriceRange: [1000, 2000], description: 'На блатных номерах. Разумеется, кузов битый, но какой шильдик!' },
+  { name: 'Audi A4 B5',         tier: 'Bucket',  basePriceRange: [800,  1800], description: 'Quattro лечится. Кошелек — нет.' },
+  { name: 'Honda Civic VI',     tier: 'Bucket',  basePriceRange: [1100, 1900], description: 'Японская надежность эпохи Windows 98.' },
+  { name: 'VW Passat B3',       tier: 'Bucket',  basePriceRange: [850,  1600], description: 'Самая распространенная машина на любом авторынке страны.' },
+  { name: 'Toyota Corolla E110',tier: 'Bucket',  basePriceRange: [1200, 2000], description: 'Едет и едет. Это всё, что про неё надо знать.' },
+  // Новые вёдра
+  { name: 'Москвич 2141',       tier: 'Bucket',  basePriceRange: [400,   900], description: 'Коровавалет! Патриот отечественного автопрома.' },
+  { name: 'ЗАЗ Таврия',         tier: 'Bucket',  basePriceRange: [300,   700], description: 'Самое страшное, что может случиться с деньгами.' },
+  { name: 'Иж 2126 Ода',        tier: 'Bucket',  basePriceRange: [500,   950], description: 'Ода отчаянию. Стальной гроб Ижевского завода.' },
+  { name: 'Chevrolet Aveo T200',tier: 'Bucket',  basePriceRange: [900,  1400], description: 'Мечта курьера. Тяга есть, логики нет.' },
 
-  // --- SCRAP ($3,000–$9,000) ---
-  { name: 'BMW 5 Series E60',   tier: 'Scrap',   basePriceRange: [5000, 9000] },
-  { name: 'Toyota Camry V40',   tier: 'Scrap',   basePriceRange: [4000, 8000] },
-  { name: 'Audi A4 B8',         tier: 'Scrap',   basePriceRange: [4500, 8500] },
-  { name: 'Skoda Octavia III',  tier: 'Scrap',   basePriceRange: [3000, 6000] },
-  { name: 'VW Passat B7',       tier: 'Scrap',   basePriceRange: [3500, 7000] },
-  { name: 'Mercedes E-Class W212', tier: 'Scrap', basePriceRange: [4000, 8000] },
-  { name: 'Mitsubishi Lancer X', tier: 'Scrap',  basePriceRange: [3000, 6500] },
-  { name: 'Ford Fusion (USA)',  tier: 'Scrap',   basePriceRange: [5500, 8500] },
-  { name: 'VW Jetta VI',        tier: 'Scrap',   basePriceRange: [4800, 7500] },
-  { name: 'Hyundai Sonata YF',  tier: 'Scrap',   basePriceRange: [4200, 7800] },
+  // ─── SCRAP ($3,000–$9,000) ──────────────────────────────────────────────────
+  { name: 'BMW 5 Series E60',   tier: 'Scrap',   basePriceRange: [5000, 9000], description: 'Бумер с гнилыми порогами. Обслуживание требует второй ипотеки.' },
+  { name: 'Toyota Camry V40',   tier: 'Scrap',   basePriceRange: [4000, 8000], description: 'Камри — мечта таксиста. Убита в хлам, но ещё дышит.' },
+  { name: 'Audi A4 B8',         tier: 'Scrap',   basePriceRange: [4500, 8500], description: 'Quattro, DSG, и счет за ремонт размером с квартплату.' },
+  { name: 'Skoda Octavia III',  tier: 'Scrap',   basePriceRange: [3000, 6000], description: 'Практичная, скучная, надёжная. И да, она всё равно ломается.' },
+  { name: 'VW Passat B7',       tier: 'Scrap',   basePriceRange: [3500, 7000], description: 'Семейный аппарат. Половина пробега — лёд, вторая — яма.' },
+  { name: 'Mercedes E-Class W212', tier: 'Scrap', basePriceRange: [4000, 8000], description: 'Звезда на решетке, ржавчина на порогах.' },
+  { name: 'Mitsubishi Lancer X', tier: 'Scrap',  basePriceRange: [3000, 6500], description: 'Спортивный дух, гнилая судьба. Обязательно крашеный.' },
+  { name: 'Ford Fusion (USA)',  tier: 'Scrap',   basePriceRange: [5500, 8500], description: 'Американский бизнес-класс по цене подержанной Lada.' },
+  { name: 'VW Jetta VI',        tier: 'Scrap',   basePriceRange: [4800, 7500], description: 'Jetta для тех, кому Пассат не по карману.' },
+  { name: 'Hyundai Sonata YF',  tier: 'Scrap',   basePriceRange: [4200, 7800], description: 'Корейский надёжный рабочий конь, которого загнали.' },
+  // Новые битые
+  { name: 'Chrysler 300C W1',   tier: 'Scrap',   basePriceRange: [4000, 7000], description: 'Бандитская классика. Бензин кушает, как дракон.' },
+  { name: 'Subaru Outback BP',  tier: 'Scrap',   basePriceRange: [3500, 6500], description: 'Легенда аутдора. Ремни ГРМ — это постоянная боль.' },
+  { name: 'Kia Optima TF',      tier: 'Scrap',   basePriceRange: [3500, 6000], description: 'Красивый снаружи, непредсказуемый внутри.' },
 
-  // --- BUSINESS ($12,000–$22,000) ---
-  { name: 'Toyota Camry V50',   tier: 'Business', basePriceRange: [13000, 18000] },
-  { name: 'BMW 5 Series F10',   tier: 'Business', basePriceRange: [15000, 22000] },
-  { name: 'Mazda 6 GJ',         tier: 'Business', basePriceRange: [12000, 16000] },
-  { name: 'Mercedes E-Class W212 Restyling', tier: 'Business', basePriceRange: [16000, 22000] },
-  { name: 'Skoda Superb II',    tier: 'Business', basePriceRange: [12000, 17000] },
-  { name: 'Audi A6 C7',         tier: 'Business', basePriceRange: [14000, 20000] },
-  { name: 'Lexus ES 350 (2014)', tier: 'Business', basePriceRange: [17000, 23000] },
-  { name: 'Volvo S80 II',       tier: 'Business', basePriceRange: [11000, 15000] },
+  // ─── BUSINESS ($12,000–$22,000) ─────────────────────────────────────────────
+  { name: 'Toyota Camry V50',   tier: 'Business', basePriceRange: [13000, 18000], description: 'Тот самый Камри, на котором ездит половина чиновников.' },
+  { name: 'BMW 5 Series F10',   tier: 'Business', basePriceRange: [15000, 22000], description: 'Пятёрка. Статус есть. Расходы тоже.' },
+  { name: 'Mazda 6 GJ',         tier: 'Business', basePriceRange: [12000, 16000], description: 'Skyactiv и японская душа. Реально хороший выбор.' },
+  { name: 'Mercedes E-Class W212 Restyling', tier: 'Business', basePriceRange: [16000, 22000], description: 'Уже не ржавый. Почти.' },
+  { name: 'Skoda Superb II',    tier: 'Business', basePriceRange: [12000, 17000], description: 'Большой, немецкий, Шкода. Самозванец бизнес-класса.' },
+  { name: 'Audi A6 C7',         tier: 'Business', basePriceRange: [14000, 20000], description: 'Алюминиевое шасси. Ремонт алюминиевой сварки — не для слабонервных.' },
+  { name: 'Lexus ES 350 (2014)', tier: 'Business', basePriceRange: [17000, 23000], description: 'Японский бизнес-класс. Тихо едет, тихо ломается.' },
+  { name: 'Volvo S80 II',       tier: 'Business', basePriceRange: [11000, 15000], description: 'Для тех, кто любит безопасность и шведскую депрессию.' },
+  { name: 'VW Phaeton',         tier: 'Business', basePriceRange: [10000, 16000], description: 'Скрытый флагман VW. Обслуживание — как у Bentley. Потому что он и есть Bentley.' },
+  { name: 'Jaguar XF X250',     tier: 'Business', basePriceRange: [11000, 17000], description: 'Британское очарование и британская надёжность. Удачи вам.' },
 
-  // --- PREMIUM ($25,000–$60,000) ---
-  { name: 'Porsche Cayenne 958', tier: 'Premium', basePriceRange: [30000, 50000] },
-  { name: 'Mercedes S-Class W222', tier: 'Premium', basePriceRange: [35000, 55000] },
-  { name: 'BMW M5 F10',         tier: 'Premium', basePriceRange: [28000, 45000] },
-  { name: 'Range Rover Autobiography', tier: 'Premium', basePriceRange: [35000, 60000] },
-  { name: 'Mercedes G-Class W463', tier: 'Premium', basePriceRange: [40000, 60000] },
-  { name: 'Tesla Model S P85D', tier: 'Premium', basePriceRange: [25000, 40000] },
-  { name: 'Audi Q8',            tier: 'Premium', basePriceRange: [45000, 65000] },
-  { name: 'BMW X5 F15',         tier: 'Premium', basePriceRange: [22000, 38000] },
+  // ─── PREMIUM ($25,000–$60,000) ──────────────────────────────────────────────
+  { name: 'Porsche Cayenne 958', tier: 'Premium', basePriceRange: [30000, 50000], description: 'Когда нужен джип, но хочется Порше.' },
+  { name: 'Mercedes S-Class W222', tier: 'Premium', basePriceRange: [35000, 55000], description: 'S-класс. Едешь сзади, как депутат.' },
+  { name: 'BMW M5 F10',         tier: 'Premium', basePriceRange: [28000, 45000], description: 'Четыре двери и душа спорткара. Турбины не дремлют.' },
+  { name: 'Range Rover Autobiography', tier: 'Premium', basePriceRange: [35000, 60000], description: 'Роскошь с британским пренебрежением к надёжности.' },
+  { name: 'Mercedes G-Class W463', tier: 'Premium', basePriceRange: [40000, 60000], description: 'Квадратный, дорогой, неубиваемый. Легенда.' },
+  { name: 'Tesla Model S P85D', tier: 'Premium', basePriceRange: [25000, 40000], description: 'Быстрее всех на светофоре. Зарядка — отдельная история.' },
+  { name: 'Audi Q8',            tier: 'Premium', basePriceRange: [45000, 65000], description: 'Большой, красивый, понтовый. Расход масла в норме (нет).' },
+  { name: 'BMW X5 F15',         tier: 'Premium', basePriceRange: [22000, 38000], description: 'Классика премиум-кроссовера. Электрика любит шутить.' },
+  // Новый премиум
+  { name: 'Lamborghini Urus',   tier: 'Premium', basePriceRange: [60000, 95000], description: 'Итальянский трактор. Оба цилиндра разбудят весь квартал.' },
+  { name: 'Bentley Continental GT', tier: 'Premium', basePriceRange: [45000, 75000], description: 'Ты не просто едешь — ты плывёшь. Дорогой шум двигателя.' },
 
-  // --- RARITY ($40,000–$150,000) ---
-  { name: 'Toyota Supra MK4',   tier: 'Rarity',  basePriceRange: [55000, 120000] },
-  { name: 'Nissan Skyline GT-R R34', tier: 'Rarity', basePriceRange: [80000, 150000] },
-  { name: 'BMW M3 E46',         tier: 'Rarity',  basePriceRange: [30000, 55000] },
-  { name: 'Ferrari Testarossa', tier: 'Rarity',  basePriceRange: [100000, 165000] },
-  { name: 'Mercedes 190E Evo II', tier: 'Rarity', basePriceRange: [90000, 180000] },
-  { name: 'Porsche 911 (993)',   tier: 'Rarity',  basePriceRange: [65000, 130000] },
-  { name: 'BMW M3 E30',         tier: 'Rarity',  basePriceRange: [40000, 90000] },
-  { name: 'Dodge Charger 1969', tier: 'Rarity',  basePriceRange: [50000, 110000] },
-  { name: 'Shelby GT500 1967',  tier: 'Rarity',  basePriceRange: [120000, 250000] },
+  // ─── RARITY ($40,000–$250,000) ──────────────────────────────────────────────
+  { name: 'Toyota Supra MK4',   tier: 'Rarity',  basePriceRange: [55000,  120000], description: 'Легенда Toretto. 2JZ переживёт всё, кроме вас.' },
+  { name: 'Nissan Skyline GT-R R34', tier: 'Rarity', basePriceRange: [80000, 150000], description: 'Godzilla. Запрещена в США — значит, правильная машина.' },
+  { name: 'BMW M3 E46',         tier: 'Rarity',  basePriceRange: [30000,  55000], description: 'Чистокровный гоночный мотор S54. Ресурс — 200к при везении.' },
+  { name: 'Ferrari Testarossa', tier: 'Rarity',  basePriceRange: [100000, 165000], description: 'Красная, плоская, итальянская. Детская мечта любого перекупа.' },
+  { name: 'Mercedes 190E Evo II', tier: 'Rarity', basePriceRange: [90000, 180000], description: 'Серийный болид DTM. Коллекционная редкость.' },
+  { name: 'Porsche 911 (993)',   tier: 'Rarity',  basePriceRange: [65000,  130000], description: 'Последний воздушник. Классика без компромиссов.' },
+  { name: 'BMW M3 E30',         tier: 'Rarity',  basePriceRange: [40000,  90000], description: 'Дедушка всех M-карс. Группа A в гражданской жизни.' },
+  { name: 'Dodge Charger 1969', tier: 'Rarity',  basePriceRange: [50000,  110000], description: 'Американский мускул в чистом виде. HEMI или смерть.' },
+  { name: 'Shelby GT500 1967',  tier: 'Rarity',  basePriceRange: [120000, 250000], description: 'Синяя жила Американской мечты. Кэрролл Шелби одобряет.' },
+  // Новые раритеты
+  { name: 'De Tomaso Pantera',  tier: 'Rarity',  basePriceRange: [120000, 220000], description: 'Итальянский кузов, американский V8. Инженерное безумие 70-х.' },
+  { name: 'DeLorean DMC-12',    tier: 'Rarity',  basePriceRange: [40000,  80000], description: 'На нём можно уехать в будущее. Если заведётся.' },
+  { name: 'Pagani Huayra',      tier: 'Rarity',  basePriceRange: [500000, 800000], description: 'Искусство на колёсах. Гиперкар, который Канье мог бы себе позволить (наверное).' },
 ];

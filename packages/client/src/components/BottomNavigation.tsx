@@ -2,26 +2,36 @@ import React from 'react';
 import { motion } from 'framer-motion';
 import WebApp from '@twa-dev/sdk';
 import type { ActiveTab } from '../store/uiStore';
-
-type NavItem = ActiveTab;
+import { useGameStore } from '../store/gameStore';
 
 interface Props {
-  activeTab: NavItem;
-  onTabChange: (tab: NavItem) => void;
+  activeTab: ActiveTab;
+  onTabChange: (tab: ActiveTab) => void;
 }
 
 export const BottomNavigation: React.FC<Props> = ({ activeTab, onTabChange }) => {
-  const navItems: { id: NavItem; label: string; icon: string }[] = [
-    { id: 'garage', label: 'Гараж', icon: '🚗' },
-    { id: 'market', label: 'Рынок', icon: '🏪' },
-    { id: 'board', label: 'Игра', icon: '🎲' },
+  const pendingChallenge = useGameStore((s) => s.pendingRaceChallenge);
+  const activeDebts = useGameStore((s) => s.activeDebts);
+  const player = useGameStore((s) => s.player);
+
+  const pendingDebtCount = activeDebts.filter(
+    d => d.status === 'pending' && d.lenderId !== player.id,
+  ).length;
+
+  const dealsBadge: number | boolean | undefined = pendingChallenge ? true : (pendingDebtCount > 0 ? pendingDebtCount : undefined);
+
+  const navItems: { id: ActiveTab; label: string; icon: string; badge?: number | boolean }[] = [
+    { id: 'garage',  label: 'Гараж',    icon: '🚗' },
+    { id: 'market',  label: 'Рынок',    icon: '🏪' },
+    { id: 'board',   label: 'Игра',     icon: '🎲' },
+    ...(dealsBadge !== undefined
+      ? [{ id: 'deals' as ActiveTab, label: 'Сделки', icon: '💼', badge: dealsBadge }]
+      : [{ id: 'deals' as ActiveTab, label: 'Сделки', icon: '💼' }]),
   ];
 
-  const handleTabChange = (id: NavItem) => {
+  const handleTabChange = (id: ActiveTab) => {
     if (activeTab === id) return;
-    try {
-      if (WebApp.isExpanded) WebApp.HapticFeedback.impactOccurred('light');
-    } catch (e) {}
+    try { if (WebApp.isExpanded) WebApp.HapticFeedback.impactOccurred('light'); } catch { /* noop */ }
     onTabChange(id);
   };
 
@@ -36,11 +46,11 @@ export const BottomNavigation: React.FC<Props> = ({ activeTab, onTabChange }) =>
               whileTap={{ scale: 0.9 }}
               onClick={() => handleTabChange(item.id)}
               className={`relative flex flex-col items-center justify-center w-full py-2 rounded-[1.5rem] transition-all duration-300 ${
-                isActive ? 'text-cyan-300 bg-white/5 shadow-[inset_0_0_15px_rgba(255,255,255,0.05)]' : 'text-white/40 hover:text-white/80'
+                isActive ? 'text-cyan-300 bg-white/5' : 'text-white/40 hover:text-white/80'
               }`}
             >
               {isActive && (
-                <motion.div 
+                <motion.div
                   layoutId="nav-pill"
                   className="absolute inset-0 bg-cyan-500/10 rounded-[1.5rem] border border-cyan-400/20 shadow-[0_0_15px_rgba(6,182,212,0.2)]"
                   transition={{ type: 'spring', stiffness: 300, damping: 25 }}
@@ -48,6 +58,10 @@ export const BottomNavigation: React.FC<Props> = ({ activeTab, onTabChange }) =>
               )}
               <span className="text-xl relative z-10 drop-shadow-md mb-0.5">{item.icon}</span>
               <span className="text-[10px] font-black uppercase tracking-widest relative z-10">{item.label}</span>
+              {/* Badge */}
+              {item.badge && (
+                <span className="absolute top-1 right-3 w-2.5 h-2.5 bg-rose-500 rounded-full shadow-[0_0_6px_rgba(244,63,94,0.8)] animate-pulse z-20" />
+              )}
             </motion.button>
           );
         })}
