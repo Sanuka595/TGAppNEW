@@ -157,9 +157,12 @@ export const passTurn = (roomId: string): RoomState | null => {
   }
   room.activeDebts = debts;
 
-  // ── Race expiry: clear stale challenges ──
-  if (room.activeRace && room.activeRace.status === 'pending_acceptance' && Date.now() > room.activeRace.expiresAt) {
-    room.activeRace = null;
+  // ── Race expiry: clear stale challenges and resolved races ──
+  if (room.activeRace) {
+    if ((room.activeRace.status === 'pending_acceptance' && Date.now() > room.activeRace.expiresAt) || 
+        room.activeRace.status === 'resolved') {
+      room.activeRace = null;
+    }
   }
 
   touch(roomId);

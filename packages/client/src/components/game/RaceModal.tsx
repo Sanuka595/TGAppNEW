@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Trophy, X } from 'lucide-react';
 import { useGameStore } from '../../store/gameStore';
@@ -13,8 +13,18 @@ export const RaceModal: React.FC = () => {
 
   // Also show resolved race results briefly
   const activeRace = useGameStore((s) => s.activeRace);
+  const setActiveRace = useGameStore((s) => s.setActiveRace);
   const isResolved = activeRace?.status === 'resolved';
   const isMyRaceResult = isResolved && (activeRace?.winnerId === player.id || activeRace?.initiatorId === player.id || activeRace?.targetId === player.id);
+
+  useEffect(() => {
+    if (isMyRaceResult) {
+      const timer = setTimeout(() => {
+        setActiveRace(null);
+      }, 7000);
+      return () => clearTimeout(timer);
+    }
+  }, [isMyRaceResult, setActiveRace]);
 
   if (!challenge && !isMyRaceResult) return null;
 
@@ -79,9 +89,15 @@ export const RaceModal: React.FC = () => {
             animate={{ y: 0, opacity: 1 }}
             exit={{ y: -60, opacity: 0 }}
             transition={{ type: 'spring', damping: 20, stiffness: 300 }}
-            className="glass-panel rounded-[2rem] p-5"
+            className="bg-black/80 backdrop-blur-xl border border-white/20 rounded-[2rem] p-5 shadow-2xl relative"
           >
-            <div className="flex items-start gap-3">
+            <button 
+              onClick={() => setActiveRace(null)}
+              className="absolute top-4 right-4 text-white/40 hover:text-white"
+            >
+              <X size={16} />
+            </button>
+            <div className="flex items-start gap-3 pr-6">
               <span className="text-3xl">{activeRace.winnerId === player.id ? '🏆' : '💀'}</span>
               <div className="flex-1 min-w-0">
                 <p className="font-black text-white text-sm mb-1">

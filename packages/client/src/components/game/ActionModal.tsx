@@ -172,9 +172,17 @@ export const ActionModal: React.FC = () => {
       }
       case 'race': {
         const hasCars = (player.garage || []).length > 0;
-        const maxBet = Math.floor(new Decimal(player.balance).div(2).toNumber());
         const opponents = players.filter(p => p.id !== player.id);
         const isMultiplayer = !!roomId && opponents.length > 0;
+
+        let maxBet = Math.floor(new Decimal(player.balance).div(2).toNumber());
+        if (isMultiplayer && raceTargetId) {
+          const target = opponents.find(p => p.id === raceTargetId);
+          if (target) {
+             const targetMax = Math.floor(new Decimal(target.balance).div(2).toNumber());
+             maxBet = Math.min(maxBet, targetMax);
+          }
+        }
 
         if (isMultiplayer) {
           return (
@@ -212,11 +220,21 @@ export const ActionModal: React.FC = () => {
                   Ставка (макс. ${maxBet})
                 </label>
                 <input
-                  type="range" min={100} max={maxBet} step={100} value={raceBet}
+                  type="range" min={100} max={Math.max(100, maxBet)} step={100} value={Math.min(raceBet, maxBet)}
                   onChange={e => setRaceBet(Number(e.target.value))}
                   className="w-full accent-rose-400"
                 />
-                <p className="text-center text-lg font-black text-rose-400 mt-1">${raceBet}</p>
+                <div className="flex justify-between items-center mt-2">
+                  <p className="text-lg font-black text-rose-400">${Math.min(raceBet, maxBet)}</p>
+                  <Button
+                    variant="secondary"
+                    className="h-7 text-[10px] px-3"
+                    disabled={!raceTargetId || maxBet < 100}
+                    onClick={() => { triggerHaptic('impact', 'light'); setRaceBet(maxBet); }}
+                  >
+                    50% Макс
+                  </Button>
+                </div>
               </div>
 
               <Button
