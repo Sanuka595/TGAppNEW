@@ -1,4 +1,8 @@
+import { type StateCreator } from 'zustand';
 import type { SoloQuest } from '@tgperekup/shared';
+import type { GameStore } from '../store.types';
+
+// ─── Slice types ──────────────────────────────────────────────────────────────
 
 export interface SoloState {
   isSoloMode: boolean;
@@ -10,16 +14,10 @@ export interface SoloState {
 }
 
 export interface SoloActions {
-  /** Start a solo game session (initialises bot state, generates first quest). */
   startSoloMode: () => void;
-  /** Process one bot turn: tick counter, compound debt if needed, take action. */
   processBotTurn: () => void;
-  /** Set or clear the active quest. */
   setActiveQuest: (quest: SoloQuest | null) => void;
-  /** Reset the solo debt to its starting value '0'. */
   resetSoloDebt: () => void;
-  /** Full account reset — clears all player and solo state. */
-  resetAccount: () => void;
 }
 
 export type SoloSlice = SoloState & SoloActions;
@@ -30,3 +28,30 @@ export const initialSoloState: SoloState = {
   botTurnsUntilAction: 3,
   activeQuest: null,
 };
+
+// ─── Slice factory ────────────────────────────────────────────────────────────
+
+export const createSoloSlice: StateCreator<GameStore, [['zustand/persist', unknown]], [], SoloSlice> = (set, get) => ({
+  ...initialSoloState,
+
+  startSoloMode: () => {
+    set({
+      isSoloMode: true,
+      roomId: null,
+      players: [get().player],
+      isHost: true,
+      soloDebt: '2000',
+      botTurnsUntilAction: 3,
+      activeQuest: null,
+      totalTurns: 0,
+      winnerId: null,
+    });
+    get().addLog('Начата соло-игра против Бори!', 'info');
+  },
+
+  processBotTurn: () => { /* TODO: Phase 3 — Bot Borya AI */ },
+
+  setActiveQuest: (quest) => set({ activeQuest: quest }),
+
+  resetSoloDebt: () => set({ soloDebt: '0' }),
+});

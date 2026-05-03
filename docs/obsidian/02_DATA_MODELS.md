@@ -1,13 +1,13 @@
 # Перекуп D6 — Полная техническая документация
 ## Файл 2 из 5: Типы данных и Модели
 
-> Все типы базируются на **Zod-схемах** и живут в пакете `packages/shared/src/dtos/`. Это единственный источник правды — и сервер, и клиент импортируют отсюда.
+> Все типы базируются на **Zod-схемах** в пакете `packages/shared/src/dtos/`.
 
 ---
 
 ## 1. Типы и Схемы
 
-Мы используем Zod для валидации данных в рантайме. Типы экспортируются как `z.infer<typeof Schema>`.
+Используем Zod для рантайм-валидации и вывода типов TS.
 
 ```typescript
 // packages/shared/src/dtos/common.ts
@@ -24,12 +24,13 @@ export type LogType = 'bot' | 'system' | 'debt' | 'quest' | 'success' | 'error' 
 ### DefectInstance
 ```typescript
 export interface DefectInstance {
-  id: string;            // uuid
-  name: string;          // из базы дефектов
+  id: string;            // уникальный ID инстанса
+  defectTypeId: string;  // ID из базы дефектов
+  name: string;
   severity: SeverityLevel;
   repairCost: string;    // Decimal string
   isRepaired: boolean;
-  isHidden: boolean;     // скрыт до диагностики
+  isHidden: boolean;
 }
 ```
 
@@ -42,31 +43,50 @@ export interface Car {
   basePrice: string;
   defects: DefectInstance[];
   health: number;        // 0-100
+  history: string[];     // История событий
   boughtFor?: string;
   isRented?: boolean;
+  isLocked?: boolean;    // Если в залоге по долгу
+  mileage?: number;
+  auditLog?: CarHistoryEntry[];
 }
 ```
 
 ---
 
-## 3. Новость/Событие рынка
+## 3. Игрок (Player)
 
 ```typescript
-export interface GameNews {
+export interface Player {
   id: string;
-  title: string;
-  description: string;
-  icon: string;          // Эмодзи или символ
-  effects: {
-    tierMultipliers: Record<CarTier, number>;
-    modelMultipliers: Record<string, number>;
-  };
+  name?: string;
+  balance: string;       // Decimal string
+  fuel: number;          // Топливо (пока не используется)
+  position: number;      // 0-11
+  reputation: number;
+  garage?: Car[];
+  energy: number;        // 0-3
+  energyRegenCounter: number; // 0-1
 }
 ```
 
 ---
 
-## 4. Игровая карта (GAME_MAP)
+## 4. Синхронизация (SyncActionPayload)
+
+Полный список реализованных экшенов:
+
+- **Торговля**: `buyCar`, `sellCar`, `refreshMarket`, `updateMarket`.
+- **Сервис**: `repairCar`, `diagnoseCar`, `diagnoseMarketCar`.
+- **Доход**: `rentCar`.
+- **Движение**: `manualMove` (тактический ход), `buyEnergy`.
+- **P2P Долги**: `loanOffer`, `loanAccepted`, `repayDebt`, `confiscateCar`.
+- **Гонки**: `raceLobbyOpen`, `raceChallengeInitiated`, `raceAccept`, `raceDecline`, `raceJoin`, `raceResults`.
+- **Системные**: `newsUpdate`, `victory`.
+
+---
+
+## 5. Игровая карта (GAME_MAP)
 
 ```typescript
 export const GAME_MAP: BoardCell[] = [
@@ -83,27 +103,4 @@ export const GAME_MAP: BoardCell[] = [
   { id: 10, type: 'rent',           name: 'Прокат',            icon: '🚗', description: 'Сдача авто' },
   { id: 11, type: 'buy_retro',      name: 'Ретро',             icon: '🏎️', description: 'Редкие и ретро авто' },
 ];
-```
-
----
-
-## 5. Синхронизация (SyncActionPayload)
-
-Список всех экшенов, которые передаются между игроками:
-
-- `buyCar`, `sellCar`, `repairCar`, `rentCar`
-- `diagnoseCar` — скрытые дефекты
-- `newsUpdate` — ротация новостей
-- `raceResults` — итоги гонок
-- `loanOffer`, `loanAccepted`, `repayDebt`
-- `victory` — завершение игры
-- `buyEnergy` — покупка тактического преимущества
-
----
-
-## 6. Правила импорта
-
-```typescript
-// ✅ ВСЕГДА из shared
-import { GAME_MAP, type Car, type Player } from '@tgperekup/shared';
 ```

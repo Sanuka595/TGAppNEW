@@ -1,5 +1,5 @@
 import { Decimal } from 'decimal.js';
-import type { Car, CarTier, DefectInstance, GameNews, SeverityLevel } from './types.js';
+import type { Car, CarTier, CellType, DefectInstance, GameNews, SeverityLevel } from './types.js';
 import { HEALTH_PENALTIES } from './types.js';
 
 // ─── Constants ────────────────────────────────────────────────────────────────
@@ -173,6 +173,78 @@ export function generateRepairCost(
 
 import { CAR_MODELS_DB } from './carDatabase.js';
 import { DEFECTS_DB } from './defectDatabase.js';
+
+// ─── Race ─────────────────────────────────────────────────────────────────────
+
+/**
+ * D6 roll bonus applied per car tier in race duels.
+ * Shared between server (authoritative resolve) and client (preview display).
+ */
+export const TIER_RACE_BONUS: Record<CarTier, number> = {
+  Bucket: -1, Scrap: 0, Business: 0, Premium: 1, Rarity: 2,
+};
+
+/**
+ * Tier-based win probability multipliers for solo (vs-bot) races.
+ * Combined with car health: winChance = (health / 100) * multiplier.
+ */
+export const SOLO_RACE_TIER_MULTIPLIERS: Record<CarTier, number> = {
+  Bucket: 0.5, Scrap: 0.7, Business: 1.0, Premium: 1.3, Rarity: 1.6,
+};
+
+/**
+ * Calculates the win probability for a solo (vs-bot) race.
+ * Result is in [0, 1] — compare against Math.random() to resolve.
+ */
+export function calculateSoloRaceWinChance(car: Car): number {
+  return (car.health / 100) * SOLO_RACE_TIER_MULTIPLIERS[car.tier];
+}
+
+// ─── Market generation ────────────────────────────────────────────────────────
+
+/**
+ * Generates a fresh market lot for a given board cell type.
+ * Returns an empty array for non-buy cells.
+ */
+export function generateMarketForCell(cellType: CellType): Car[] {
+  const ALL_TIERS: CarTier[] = ['Bucket', 'Scrap', 'Business', 'Premium', 'Rarity'];
+  switch (cellType) {
+    case 'buy_bucket':
+      return Array.from({ length: 3 }, () => generateCar('Bucket'));
+    case 'buy_scrap':
+      return Array.from({ length: 3 }, () => generateCar('Scrap'));
+    case 'buy_business':
+      return Array.from({ length: 3 }, () => generateCar('Business'));
+    case 'buy_premium':
+      return Array.from({ length: 2 }, () => generateCar('Premium'));
+    case 'buy_retro':
+      return [generateCar('Rarity')];
+    case 'buy_random': {
+      const pick = (): CarTier => ALL_TIERS[Math.floor(Math.random() * ALL_TIERS.length)]!;
+      return Array.from({ length: 3 }, () => generateCar(pick()));
+    }
+    default:
+      return [];
+  }
+}
+
+// ─── Random encounter ─────────────────────────────────────────────────────────
+
+export type RandomEncounter =
+  | { type: 'fine'; amount: number }
+  | { type: 'bonus'; amount: number };
+
+/**
+ * Rolls a 15% chance random road encounter (traffic police fine or lucky bonus).
+ * Returns null when no encounter occurs.
+ */
+export function resolveRandomEncounter(): RandomEncounter | null {
+  if (Math.random() >= 0.15) return null;
+  const isBad = Math.random() > 0.5;
+  return isBad
+    ? { type: 'fine',  amount: 100 + Math.floor(Math.random() * 200) }
+    : { type: 'bonus', amount: 50  + Math.floor(Math.random() * 150) };
+}
 
 /**
  * Generates a random integer in [min, max].

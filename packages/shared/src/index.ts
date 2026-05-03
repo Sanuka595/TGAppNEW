@@ -1,3 +1,5 @@
+export * from './constants.js';
+
 export type {
   CellType,
   DefectType,
@@ -21,14 +23,20 @@ export {
   OWNERSHIP_TAX_RATES,
   PROFIT_MARGINS,
   RENT_INCOME,
+  TIER_RACE_BONUS,
+  SOLO_RACE_TIER_MULTIPLIERS,
   deterministicMultiplier,
   calculateCarHealth,
   applyNewsEffects,
   calculateCurrentMarketValue,
   calculateSellPrice,
   calculateRentIncome,
+  calculateSoloRaceWinChance,
   generateRepairCost,
+  generateMarketForCell,
+  resolveRandomEncounter,
 } from './businessLogic.js';
+export type { RandomEncounter } from './businessLogic.js';
 
 export * from './carDatabase.js';
 export * from './defectDatabase.js';

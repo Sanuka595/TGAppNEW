@@ -1,6 +1,6 @@
 import { Decimal } from 'decimal.js';
-import type { Car, Debt, GameNews, Player, RaceDuel, RoomState } from '@tgperekup/shared';
-import { calculateCurrentMarketValue, calculateSellPrice, calculateCarHealth, calculateRentIncome } from '@tgperekup/shared';
+import type { Car, CarTier, Debt, GameNews, Player, RoomState } from '@tgperekup/shared';
+import { calculateCurrentMarketValue, calculateSellPrice, calculateCarHealth, calculateRentIncome, TIER_RACE_BONUS } from '@tgperekup/shared';
 
 export const MAX_PLAYERS = 4;
 
@@ -487,10 +487,6 @@ export const processRepayDebt = (roomId: string, borrowerId: string, debtId: str
 
 // ─── Race Duel ────────────────────────────────────────────────────────────────
 
-const TIER_RACE_BONUS: Record<string, number> = {
-  Bucket: -1, Scrap: 0, Business: 0, Premium: 1, Rarity: 2,
-};
-
 const RACE_LOGS_WIN = [
   'Турбина чихнула, но вытянула в последний момент!',
   'Закись азота сработала в нужный момент — сопернику только пыль в лицо!',
@@ -506,11 +502,11 @@ const RACE_LOGS_LOSE = [
   'Противник оказался порядочным жуликом и выиграл честно.',
 ];
 
-function getBestCarTier(playerId: string, room: RoomState): string {
+function getBestCarTier(playerId: string, room: RoomState): CarTier {
   const player = room.players.find(p => p.id === playerId);
   if (!player?.garage?.length) return 'Bucket';
-  const order = ['Bucket', 'Scrap', 'Business', 'Premium', 'Rarity'];
-  return player.garage.reduce((best, car) =>
+  const order: CarTier[] = ['Bucket', 'Scrap', 'Business', 'Premium', 'Rarity'];
+  return player.garage.reduce<CarTier>((best, car) =>
     order.indexOf(car.tier) > order.indexOf(best) ? car.tier : best, 'Bucket');
 }
 
