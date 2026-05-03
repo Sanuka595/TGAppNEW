@@ -1,5 +1,5 @@
 # Перекуп D6 — Полная техническая документация
-## Файл 1 из 5: Обзор и Архитектура
+## Файл 1 из 6: Обзор и Архитектура
 
 > **Цель документа:** Исчерпывающее описание текущего состояния игры «Перекуп D6», её архитектуры и технического стека.
 
@@ -31,11 +31,12 @@
 ```
 ┌─────────────────────────────────────────────────┐
 │  UI LAYER (packages/client)                     │
-│  React 19, Framer Motion, Zustand 5, UI Store   │
-│  Отображение состояния и отправка событий.      │
+│  React 19, Framer Motion, Zustand 5             │
+│  Тонкий стор — диспетчер событий и UI-стейт.   │
 ├─────────────────────────────────────────────────┤
 │  DOMAIN LAYER (packages/shared)                 │
-│  businessLogic.ts — ядро расчётов (Authoritative)│
+│  businessLogic.ts — ядро расчётов (pure fn)     │
+│  constants.ts — игровые константы               │
 │  carDatabase.ts, defectDatabase.ts — контент    │
 │  dtos/ — Zod схемы (единственный источник типов)│
 ├─────────────────────────────────────────────────┤
@@ -45,6 +46,8 @@
 └─────────────────────────────────────────────────┘
 ```
 
+**Принцип shared-first:** все игровые формулы и константы живут в `packages/shared` и импортируются клиентом и сервером. Расчёты гарантированно идентичны на всех слоях.
+
 ---
 
 ## 4. Структура проекта (NPM Workspaces Monorepo)
@@ -52,39 +55,46 @@
 ```
 TGPEREKUP/
 ├── packages/
-│   ├── shared/               # ОБЩИЙ ПАКЕТ
-│   │   ├── src/
-│   │   │   ├── dtos/         # Zod схемы (Car, Player, Room)
-│   │   │   ├── businessLogic.ts # Логика (Decimal.js)
-│   │   │   ├── carDatabase.ts   # Модели авто
-│   │   │   ├── defectDatabase.ts # Список дефектов
-│   │   │   ├── newsDatabase.ts  # События рынка
-│   │   │   └── types.ts      # Системные типы и GAME_MAP
-│   ├── client/               # ФРОНТЕНД
-│   │   ├── src/
-│   │   │   ├── components/
-│   │   │   │   ├── game/     # ActionModal, RadialBoard, DiceArea
-│   │   │   │   ├── ui/       # Базовые компоненты
-│   │   │   │   ├── MainLayout.tsx
-│   │   │   │   └── TopBar.tsx
-│   │   │   ├── store/        # gameStore.ts, uiStore.ts
-│   │   │   ├── lib/          # tmaProvider.ts, socket.ts
-│   │   │   └── assets/       # CSS и статика
-│   └── server/               # БЭКЕНД
-│       ├── src/
-│       │   ├── index.ts      # Express Server
-│       │   ├── roomManager.ts # Логика комнат (Transactions)
-│       │   └── socketHandlers.ts # Socket events
-├── Dockerfile                # Docker build
-├── railway.json              # Railway deploy
-└── package.json              # Workspaces config
+│   ├── shared/                    # ОБЩИЙ ПАКЕТ
+│   │   └── src/
+│   │       ├── dtos/              # Zod схемы (Car, Player, Room)
+│   │       ├── businessLogic.ts   # Чистые функции расчётов (Decimal.js)
+│   │       ├── constants.ts       # Игровые константы (стоимости, лимиты)
+│   │       ├── carDatabase.ts     # Модели авто
+│   │       ├── defectDatabase.ts  # Список дефектов
+│   │       ├── newsDatabase.ts    # События рынка
+│   │       └── types.ts           # Системные типы и GAME_MAP
+│   ├── client/                    # ФРОНТЕНД
+│   │   └── src/
+│   │       ├── components/
+│   │       │   ├── game/          # ActionModal, RadialBoard, DiceArea, …
+│   │       │   └── ui/            # Базовые компоненты
+│   │       ├── store/
+│   │       │   ├── gameStore.ts       # Тонкий ассемблер (~68 строк)
+│   │       │   ├── store.types.ts     # GameStore interface
+│   │       │   ├── socketListeners.ts # Socket.IO listeners
+│   │       │   ├── storage.ts         # TMA-совместимый persist-адаптер
+│   │       │   └── slices/
+│   │       │       ├── playerSlice.ts      # Стейт + createPlayerSlice
+│   │       │       ├── soloSlice.ts        # Стейт + createSoloSlice
+│   │       │       └── multiplayerSlice.ts # Стейт + createMultiplayerSlice
+│   │       └── lib/
+│   │           ├── tmaProvider.ts  # Haptic feedback, TMA init
+│   │           └── socket.ts       # Socket.IO client singleton
+│   └── server/                    # БЭКЕНД
+│       └── src/
+│           ├── index.ts            # Express + Socket.IO + Bot
+│           ├── roomManager.ts      # Авторитарная логика комнат
+│           └── socketHandlers.ts   # Диспетчер сокет-событий
+├── Dockerfile
+├── railway.json
+└── package.json                   # Workspaces config
 ```
 
 ---
 
 ## 5. Переменные окружения
 
-### `.env.example`
 ```env
 # Telegram Bot
 BOT_TOKEN=...
@@ -105,7 +115,7 @@ VITE_SOCKET_URL=/
 
 **Процесс действия:**
 1. Клиент отправляет запрос через `sync_action`.
-2. Сервер вызывает `roomManager.processAction()`.
+2. Сервер вызывает нужный метод `roomManager` (например, `processBuyCar`).
 3. При успехе сервер обновляет `RoomState` и рассылает `room_updated`.
 
 ---
@@ -118,6 +128,7 @@ VITE_SOCKET_URL=/
 | `create_room` | `{ player, winCondition }` | Создать игру |
 | `join_room` | `{ roomId, player }` | Войти в игру |
 | `dice_roll` | `{ roomId, playerId }` | Бросок кубика |
+| `pass_turn` | `{ roomId, playerId }` | Передать ход |
 | `sync_action` | `{ action, payload }` | Действие (buyCar, repair и т.д.) |
 
 ### Server → Client
@@ -125,7 +136,7 @@ VITE_SOCKET_URL=/
 |---|---|---|
 | `room_updated` | `RoomState` | Обновленное состояние комнаты |
 | `dice_roll_result` | `{ playerId, diceValue, newPosition }` | Результат броска |
-| `sync_action_result`| `{ playerId, action, payload }` | Реле действия |
+| `sync_action_result` | `{ playerId, action, payload }` | Реле действия другого игрока |
 | `room_error` | `string` | Ошибка валидации |
 
 ---
@@ -135,3 +146,4 @@ VITE_SOCKET_URL=/
 - **Валидация**: Каждое действие проверяется в `roomManager.ts` на предмет очередности хода, баланса и прав владения.
 - **Zod**: Все входящие DTO проходят проверку схем.
 - **Haptic**: Обратная связь через Telegram Haptic Feedback интегрирована в клиент.
+- **Shared constants**: Игровые константы (стоимости, лимиты) импортируются с одного источника — дублирование и рассинхрон исключены.
