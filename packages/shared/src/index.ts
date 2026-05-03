@@ -35,6 +35,7 @@ export {
   generateRepairCost,
   generateMarketForCell,
   resolveRandomEncounter,
+  selectWeightedNews,
 } from './businessLogic.js';
 export type { RandomEncounter } from './businessLogic.js';
 

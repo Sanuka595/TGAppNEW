@@ -271,9 +271,7 @@ export const createMultiplayerSlice: StateCreator<GameStore, [['zustand/persist'
     const currentPlayer = players[currentTurnIndex];
     if (currentPlayer?.id !== player.id) { get().addLog('Сейчас не ваш ход!', 'error'); return; }
 
-    if (get().isHost && (totalTurns + 1) % 5 === 0) {
-      get().updateNews();
-    }
+    // News selection in multiplayer is handled server-side by Smart Event Director.
     socket.emit('pass_turn', { roomId, playerId: player.id });
   },
 

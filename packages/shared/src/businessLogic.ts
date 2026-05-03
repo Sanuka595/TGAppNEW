@@ -1,6 +1,7 @@
 import { Decimal } from 'decimal.js';
 import type { Car, CarTier, CellType, DefectInstance, GameNews, SeverityLevel } from './types.js';
 import { HEALTH_PENALTIES } from './types.js';
+import type { MarketStats } from './dtos/room.js';
 
 // ─── Constants ────────────────────────────────────────────────────────────────
 
@@ -226,6 +227,56 @@ export function generateMarketForCell(cellType: CellType): Car[] {
     default:
       return [];
   }
+}
+
+// ─── Smart Event Director ─────────────────────────────────────────────────────
+
+import { NEWS_DB } from './newsDatabase.js';
+
+/**
+ * Selects a weighted-random news event based on current market activity.
+ * When stats is null (solo mode with no tracking), falls back to uniform random.
+ *
+ * Weight rules (base weight = 100 per event):
+ *   scrap_utilization   +400 if nobody bought Scrap this session
+ *   luxury_deficit      +300 if 3+ Premium cars bought
+ *   tax_luxury          +250 if 3+ Premium bought (competing with deficit)
+ *   taxi_boom           +200 if 2+ Business bought
+ *   retro_hype          +250 if any Rarity bought
+ *   racing_fever        +300 if 2+ races won
+ *   gai_raid            +200 if 4+ Bucket bought
+ *   repair_season       +150 if 5+ repairs done
+ *   fuel_crisis         +200 if 3+ Bucket bought
+ */
+export function selectWeightedNews(stats: MarketStats | null): GameNews {
+  if (NEWS_DB.length === 0) throw new Error('NEWS_DB is empty');
+  if (!stats) return NEWS_DB[Math.floor(Math.random() * NEWS_DB.length)]!;
+
+  const weights = NEWS_DB.map((news) => {
+    let w = 100;
+    const { boughtByTier, repairsDone, racesWon } = stats;
+
+    switch (news.id) {
+      case 'scrap_utilization': if ((boughtByTier.Scrap ?? 0) === 0)           w += 400; break;
+      case 'luxury_deficit':    if ((boughtByTier.Premium ?? 0) >= 3)          w += 300; break;
+      case 'tax_luxury':        if ((boughtByTier.Premium ?? 0) >= 3)          w += 250; break;
+      case 'taxi_boom':         if ((boughtByTier.Business ?? 0) >= 2)         w += 200; break;
+      case 'retro_hype':        if ((boughtByTier.Rarity ?? 0) >= 1)           w += 250; break;
+      case 'racing_fever':      if (racesWon >= 2)                              w += 300; break;
+      case 'gai_raid':          if ((boughtByTier.Bucket ?? 0) >= 4)           w += 200; break;
+      case 'repair_season':     if (repairsDone >= 5)                          w += 150; break;
+      case 'fuel_crisis':       if ((boughtByTier.Bucket ?? 0) >= 3)           w += 200; break;
+    }
+    return w;
+  });
+
+  const total = weights.reduce((a, b) => a + b, 0);
+  let roll = Math.random() * total;
+  for (let i = 0; i < NEWS_DB.length; i++) {
+    roll -= weights[i]!;
+    if (roll <= 0) return NEWS_DB[i]!;
+  }
+  return NEWS_DB[NEWS_DB.length - 1]!;
 }
 
 // ─── Random encounter ─────────────────────────────────────────────────────────

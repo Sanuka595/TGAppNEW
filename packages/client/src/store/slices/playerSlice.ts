@@ -3,7 +3,6 @@ import { Decimal } from 'decimal.js';
 import type { Car, LogEntry, BoardCell, GameNews, Player, CellType } from '@tgperekup/shared';
 import {
   GAME_MAP,
-  NEWS_DB,
   calculateCurrentMarketValue,
   calculateSellPrice,
   calculateCarHealth,
@@ -11,6 +10,7 @@ import {
   calculateSoloRaceWinChance,
   generateMarketForCell,
   resolveRandomEncounter,
+  selectWeightedNews,
   DIAGNOSTICS_COST,
   MARKET_REFRESH_COST,
   ENERGY_PURCHASE_COST,
@@ -314,17 +314,15 @@ export const createPlayerSlice: StateCreator<GameStore, [['zustand/persist', unk
   },
 
   updateNews: (forcedNews) => {
-    const { roomId, player, isHost } = get();
-    const news = forcedNews ?? NEWS_DB[Math.floor(Math.random() * NEWS_DB.length)];
-    if (!news) return;
+    const { roomId } = get();
+    // In multiplayer the server picks news via Smart Event Director (passTurn).
+    // This function is only called in solo mode or with an explicit forced event.
+    if (roomId && !forcedNews) return;
 
+    const news = forcedNews ?? selectWeightedNews(null);
     set({ activeEvent: news });
     get().addLog(`[НОВОСТИ] ${news.title}: ${news.description}`, 'info');
     triggerHaptic('notification', 'info' as Parameters<typeof triggerHaptic>[1]);
-
-    if (roomId && isHost) {
-      socket.emit('sync_action', { roomId, playerId: player.id, action: 'newsUpdate', payload: news });
-    }
   },
 
   executeCellAction: (cell) => {

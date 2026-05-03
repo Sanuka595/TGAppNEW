@@ -1,6 +1,6 @@
 import { Decimal } from 'decimal.js';
 import type { Car, CarTier, Debt, EventFeedEntry, GameNews, MarketStats, Player, RoomState } from '@tgperekup/shared';
-import { calculateCurrentMarketValue, calculateSellPrice, calculateCarHealth, calculateRentIncome, TIER_RACE_BONUS } from '@tgperekup/shared';
+import { calculateCurrentMarketValue, calculateSellPrice, calculateCarHealth, calculateRentIncome, TIER_RACE_BONUS, selectWeightedNews } from '@tgperekup/shared';
 
 export const MAX_PLAYERS = 4;
 
@@ -176,10 +176,15 @@ export const passTurn = (roomId: string): RoomState | null => {
 
   // ── Race expiry: clear stale challenges and resolved races ──
   if (room.activeRace) {
-    if ((room.activeRace.status === 'pending_acceptance' && Date.now() > room.activeRace.expiresAt) || 
+    if ((room.activeRace.status === 'pending_acceptance' && Date.now() > room.activeRace.expiresAt) ||
         room.activeRace.status === 'resolved') {
       room.activeRace = null;
     }
+  }
+
+  // ── Smart Event Director: pick weighted news every 5 turns ──
+  if (room.totalTurns !== undefined && room.totalTurns > 0 && room.totalTurns % 5 === 0) {
+    room.activeEvent = selectWeightedNews(room.marketStats ?? null);
   }
 
   touch(roomId);
@@ -271,6 +276,10 @@ export const processBuyCar = (roomId: string, playerId: string, carId: string): 
     garage: [...(player.garage ?? []), { ...car, boughtFor: price.toFixed(0) }],
   };
   room.market.splice(carIndex, 1);
+
+  // Track for Smart Event Director
+  if (room.marketStats) room.marketStats.boughtByTier[car.tier] = (room.marketStats.boughtByTier[car.tier] ?? 0) + 1;
+
   touch(roomId);
   return { success: true, room };
 };
@@ -350,6 +359,8 @@ export const processRepairCar = (
     garage: newGarage,
   };
 
+  if (room.marketStats) room.marketStats.repairsDone++;
+
   touch(roomId);
   return { success: true, room };
 };
@@ -378,6 +389,8 @@ export const processRentCar = (roomId: string, playerId: string, carId: string):
     balance: new Decimal(player.balance).add(income).toFixed(0),
     garage: newGarage,
   };
+
+  if (room.marketStats) room.marketStats.carsRented++;
 
   touch(roomId);
   return { success: true, room };
@@ -616,6 +629,8 @@ export const processRaceResolve = (roomId: string): RaceResolveResult | null => 
     logs,
     participants: rolls.map(r => ({ playerId: r.playerId, roll: r.total, bonus: r.bonus, carTier: r.tier })),
   };
+
+  if (room.marketStats) room.marketStats.racesWon++;
 
   touch(roomId);
   return { room, winnerId: winner.playerId, loserId: loser.playerId, logs, bet: race.bet };

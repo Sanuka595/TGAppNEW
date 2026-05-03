@@ -132,5 +132,63 @@ export const NEWS_DB: GameNews[] = [
       },
       modelMultipliers: {}
     }
+  },
+
+  // ─── Контекстные события (Smart Event Director) ────────────────────────────
+  {
+    id: 'luxury_deficit',
+    title: 'Дефицит люкса!',
+    description: 'Покупатели разобрали весь Premium. Оставшиеся экземпляры идут с наценкой.',
+    icon: '💎',
+    effects: {
+      tierMultipliers: {
+        Premium: 1.3,
+        Rarity: 1.2
+      },
+      modelMultipliers: {}
+    }
+  },
+  {
+    id: 'gai_raid',
+    title: 'Рейды ГАИ на ведра!',
+    description: 'Полиция массово штрафует владельцев старых колымаг. Bucket стал токсичным активом.',
+    icon: '🚓',
+    effects: {
+      tierMultipliers: {
+        Bucket: 0.5,
+        Scrap: 0.75
+      },
+      modelMultipliers: {}
+    }
+  },
+  {
+    id: 'repair_season',
+    title: 'Сезон технического обслуживания!',
+    description: 'Автосервисы в очередях. Хорошо обслуженные авто ценятся особенно.',
+    icon: '🔧',
+    effects: {
+      tierMultipliers: {
+        Business: 1.15,
+        Premium: 1.1,
+        Rarity: 1.1
+      },
+      modelMultipliers: {}
+    }
+  },
+  {
+    id: 'racing_fever',
+    title: 'Гоночная лихорадка!',
+    description: 'После серии громких заездов весь город говорит о гонках. Спортивные авто в цене.',
+    icon: '🏁',
+    effects: {
+      tierMultipliers: {
+        Rarity: 1.35,
+        Premium: 1.15
+      },
+      modelMultipliers: {
+        'Toyota Supra MK4': 1.5,
+        'Nissan Skyline GT-R R34': 1.5
+      }
+    }
   }
 ];
