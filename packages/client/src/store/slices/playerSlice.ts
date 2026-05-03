@@ -44,6 +44,7 @@ export const DEFAULT_PLAYER: Player = {
   garage: [],
   energy: 3,
   energyRegenCounter: 0,
+  totalEarned: '0',
 };
 
 // ─── Slice types ──────────────────────────────────────────────────────────────

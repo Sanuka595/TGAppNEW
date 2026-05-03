@@ -1,6 +1,6 @@
 import { type StateCreator } from 'zustand';
 import { Decimal } from 'decimal.js';
-import type { Debt, Player, RaceDuel, RoomState, SyncActionPayload } from '@tgperekup/shared';
+import type { Debt, EventFeedEntry, Player, RaceDuel, RoomState, SyncActionPayload } from '@tgperekup/shared';
 import { GAME_MAP, resolveRandomEncounter } from '@tgperekup/shared';
 import { triggerHaptic } from '../../lib/tmaProvider';
 import { socket } from '../../lib/socket';
@@ -28,6 +28,8 @@ export interface MultiplayerState {
   activeRace: RaceDuel | null;
   remoteAnimation: RemoteAnimationState | null;
   pendingRaceChallenge: RaceDuel | null;
+  /** Server-authoritative global event feed. Populated by room_updated. */
+  eventFeed: EventFeedEntry[];
 }
 
 export interface MultiplayerActions {
@@ -63,6 +65,7 @@ export const initialMultiplayerState: Omit<MultiplayerState, 'hostId'> = {
   activeRace: null,
   remoteAnimation: null,
   pendingRaceChallenge: null,
+  eventFeed: [],
 };
 
 // ─── Slice factory ────────────────────────────────────────────────────────────
@@ -131,6 +134,7 @@ export const createMultiplayerSlice: StateCreator<GameStore, [['zustand/persist'
       activeDebts: roomState.activeDebts ?? state.activeDebts,
       activeRace: incomingRace,
       pendingRaceChallenge: isPendingForMe ? incomingRace : null,
+      eventFeed: roomState.eventFeed ?? state.eventFeed,
     }));
 
     if (roomState.winnerId) {

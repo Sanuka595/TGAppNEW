@@ -1,10 +1,25 @@
 import { Decimal } from 'decimal.js';
-import type { Car, CarTier, Debt, GameNews, Player, RoomState } from '@tgperekup/shared';
+import type { Car, CarTier, Debt, EventFeedEntry, GameNews, MarketStats, Player, RoomState } from '@tgperekup/shared';
 import { calculateCurrentMarketValue, calculateSellPrice, calculateCarHealth, calculateRentIncome, TIER_RACE_BONUS } from '@tgperekup/shared';
 
 export const MAX_PLAYERS = 4;
 
 const ROOM_STALE_MS = 30 * 60 * 1000;
+
+const EMPTY_MARKET_STATS: MarketStats = {
+  boughtByTier: { Bucket: 0, Scrap: 0, Business: 0, Premium: 0, Rarity: 0 },
+  repairsDone: 0,
+  carsRented: 0,
+  racesWon: 0,
+};
+
+/** Prepend an entry to the room's event feed, capping at 20 entries. */
+export function pushFeedEvent(room: RoomState, entry: Omit<EventFeedEntry, 'timestamp'>): void {
+  room.eventFeed = [
+    { ...entry, timestamp: Date.now() },
+    ...(room.eventFeed ?? []),
+  ].slice(0, 20);
+}
 
 interface RoomMeta {
   state: RoomState;
@@ -61,6 +76,8 @@ export const createRoom = (socketId: string, player: Player, winCondition: numbe
       activeRace: null,
       totalTurns: 0,
       marketRefreshedAt: Date.now(),
+      marketStats: { ...EMPTY_MARKET_STATS },
+      eventFeed: [],
     },
     lastActivityAt: Date.now(),
   });

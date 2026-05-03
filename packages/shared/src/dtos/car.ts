@@ -32,6 +32,8 @@ export const CarSchema = z.object({
   boughtFor: z.string().optional(),
   mileage: z.number().optional(),
   auditLog: z.array(CarHistoryEntrySchema).optional(),
+  /** Asset identifier for the visual card (e.g. 'zil_600'). Resolves to /assets/cars/{imageId}.svg */
+  imageId: z.string().optional(),
 });
 
 export type DefectInstance = z.infer<typeof DefectInstanceSchema>;

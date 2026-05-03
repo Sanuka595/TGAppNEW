@@ -11,6 +11,8 @@ export const PlayerSchema = z.object({
   garage: z.array(CarSchema).optional(),
   energy: z.number().min(0).max(3),
   energyRegenCounter: z.number().min(0).max(1),
+  /** Cumulative gross earnings — never decreases. Used for progression unlocks. */
+  totalEarned: z.string().optional(),
 });
 
 export type Player = z.infer<typeof PlayerSchema>;

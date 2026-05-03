@@ -27,9 +27,9 @@ System Directive: AI Development Agent (TGPerekup)
 
 3. Development Standards
 
-    Stack: TypeScript (Strict), Node.js, Lodash, Zod.
+    Stack: TypeScript (Strict), Node.js, React 19, Zustand 5, Socket.IO 4, Decimal.js, Zod.
 
-    Core Principles: SOLID design, clean/maintainable code, no any.
+    Core Principles: SOLID design, clean/maintainable code, no any. Authoritative Server logic.
 
     Naming:
 
