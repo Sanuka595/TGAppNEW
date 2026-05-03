@@ -99,7 +99,7 @@ export const RadialBoard: React.FC = () => {
                 {CELL_ICONS[cell.type]}
               </div>
 
-              <span className="text-[7px] sm:text-[8px] font-bold uppercase tracking-widest text-center leading-tight opacity-80 group-hover:opacity-100 transition-opacity">
+              <span className="text-[8px] sm:text-[9px] font-bold uppercase tracking-widest text-center leading-tight opacity-80 group-hover:opacity-100 transition-opacity">
                 {cell.name}
               </span>
             </motion.div>

@@ -48,8 +48,9 @@
     width: 100%;
     touch-action: manipulation;
   }
+}
 
-  /* ── Light Theme Variables ─────────────────────────────────────────────── */
+/* ── Light Theme Variables ─────────────────────────────────────────────── */
   body.light {
     --bg-color: #f1f5f9;
     --text-color: #0f172a;
@@ -142,7 +143,6 @@
     width: 100%;
     position: relative;
   }
-}
 
 @layer components {
   .glass-panel {

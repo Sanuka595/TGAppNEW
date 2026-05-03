@@ -90,7 +90,7 @@ export default function App(): JSX.Element {
             </div>
 
             {/* Compact event log — fixed height, never grows */}
-            <div className="w-full max-w-sm shrink-0 glass-panel rounded-2xl px-4 py-3">
+            <div className="w-full max-w-sm shrink-0 glass-panel bg-black/20 rounded-2xl px-4 py-3">
               <div className="text-[9px] text-white/30 uppercase mb-2 font-black tracking-widest">
                 События
               </div>

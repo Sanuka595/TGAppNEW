@@ -60,7 +60,9 @@ export const BottomNavigation: React.FC<Props> = ({ activeTab, onTabChange }) =>
               <span className="text-[10px] font-black uppercase tracking-widest relative z-10">{item.label}</span>
               {/* Badge */}
               {item.badge && (
-                <span className="absolute top-1 right-3 w-2.5 h-2.5 bg-rose-500 rounded-full shadow-[0_0_6px_rgba(244,63,94,0.8)] animate-pulse z-20" />
+                <span className={`absolute top-1 ${typeof item.badge === 'number' ? 'right-1 w-4 h-4 text-[9px] flex items-center justify-center' : 'right-3 w-2.5 h-2.5'} bg-rose-500 rounded-full shadow-[0_0_6px_rgba(244,63,94,0.8)] animate-pulse z-20 text-white font-bold`}>
+                  {typeof item.badge === 'number' ? item.badge : ''}
+                </span>
               )}
             </motion.button>
           );
