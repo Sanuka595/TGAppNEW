@@ -48,4 +48,24 @@ export const DEFECTS_DB: DefectType[] = [
     severity: 'Critical',
     preventsSale: true,
   },
+
+  // --- LEGENDARY (signature defects for special models) ---
+  {
+    id: 'tracks_off',
+    name: 'Слетели гусеницы',
+    category: 'Suspension',
+    severity: 'Serious',
+  },
+  {
+    id: 'electric_fire',
+    name: 'Самовозгорание АКБ',
+    category: 'Electrical',
+    severity: 'Critical',
+  },
+  {
+    id: 'bureaucratic_block',
+    name: 'Бюрократический лабиринт (8 справок)',
+    category: 'Body',
+    severity: 'Medium',
+  },
 ];

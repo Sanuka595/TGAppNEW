@@ -289,18 +289,28 @@ export function generateCar(tier: CarTier, forcedModel?: string): Car {
     case 'Rarity':   defectCount = 2; isHiddenDefault = true; break;
   }
 
-  const selectedDefectTypes = pickRandomN(DEFECTS_DB, defectCount);
-  const defects: DefectInstance[] = selectedDefectTypes.map(dt => ({
+  const makeDefect = (dt: { id: string; name: string; severity: DefectInstance['severity'] }): DefectInstance => ({
     id: Math.random().toString(36).substring(2, 9),
     defectTypeId: dt.id,
     name: dt.name,
-    category: dt.category,
     severity: dt.severity,
     repairCost: generateRepairCost(dt.severity, tier, dt.id).toString(),
     isRepaired: false,
     isHidden: isHiddenDefault,
-  }));
+  });
 
+  // Forced defects are always present (signature of special models).
+  const forcedDefects: DefectInstance[] = (model.forcedDefectIds ?? [])
+    .map(id => DEFECTS_DB.find(d => d.id === id))
+    .filter((d): d is typeof DEFECTS_DB[number] => d !== undefined)
+    .map(makeDefect);
+
+  // Random defects, excluding forced ones to avoid duplicates.
+  const forcedIds = new Set(model.forcedDefectIds ?? []);
+  const eligiblePool = DEFECTS_DB.filter(d => !forcedIds.has(d.id) && d.id !== 'legal_block');
+  const randomDefects: DefectInstance[] = pickRandomN(eligiblePool, defectCount).map(makeDefect);
+
+  const defects = [...forcedDefects, ...randomDefects];
   const health = calculateCarHealth(defects);
 
   return {
@@ -314,5 +324,6 @@ export function generateCar(tier: CarTier, forcedModel?: string): Car {
     isLocked: false,
     isRented: false,
     boughtFor: '0',
+    imageId: model.imageId,
   };
 }

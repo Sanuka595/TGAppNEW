@@ -5,6 +5,10 @@ export interface CarModel {
   tier: CarTier;
   basePriceRange: [number, number];
   description: string;
+  /** Asset key for the visual card. Resolves to /assets/cars/{imageId}.svg */
+  imageId?: string;
+  /** Defect IDs that are ALWAYS present on this model (in addition to random ones). */
+  forcedDefectIds?: string[];
 }
 
 export const CAR_MODELS_DB: CarModel[] = [
@@ -80,4 +84,43 @@ export const CAR_MODELS_DB: CarModel[] = [
   { name: 'De Tomaso Pantera',  tier: 'Rarity',  basePriceRange: [120000, 220000], description: 'Итальянский кузов, американский V8. Инженерное безумие 70-х.' },
   { name: 'DeLorean DMC-12',    tier: 'Rarity',  basePriceRange: [40000,  80000], description: 'На нём можно уехать в будущее. Если заведётся.' },
   { name: 'Pagani Huayra',      tier: 'Rarity',  basePriceRange: [500000, 800000], description: 'Искусство на колёсах. Гиперкар, который Канье мог бы себе позволить (наверное).' },
+
+  // ─── ЛЕГЕНДЫ И МЕМЫ ────────────────────────────────────────────────────────
+  {
+    name: 'ЗИЛ 600 сил',
+    tier: 'Rarity',
+    basePriceRange: [200000, 400000],
+    description: 'Академик. 600 лошадей советского сумасшествия. Налог съедает портфель, но цена продажи — это поэзия.',
+    imageId: 'zil_600',
+  },
+  {
+    name: 'Bentley на гусеницах',
+    tier: 'Rarity',
+    basePriceRange: [250000, 450000],
+    description: 'Британская роскошь сошла с ума. Гусеницы прилагаются. Диагностика покажет всё остальное.',
+    imageId: 'bentley_tracks',
+    forcedDefectIds: ['tracks_off'],
+  },
+  {
+    name: 'Электро-Волга',
+    tier: 'Premium',
+    basePriceRange: [35000, 65000],
+    description: 'Советская классика на электротяге. Не требует бензина. Зато АКБ иногда самовозгорается.',
+    imageId: 'electro_volga',
+    forcedDefectIds: ['electric_fire'],
+  },
+  {
+    name: 'Нива Легенда',
+    tier: 'Bucket',
+    basePriceRange: [1200, 2500],
+    description: 'Отечественный внедорожник. Едет везде. Правда, иногда возвращается сама.',
+    imageId: 'niva_legend',
+  },
+  {
+    name: 'КамАЗ Дакар',
+    tier: 'Scrap',
+    basePriceRange: [8000, 14000],
+    description: 'Победитель Дакара на пенсии. Кузов помят, дух несломлен.',
+    imageId: 'kamaz_dakar',
+  },
 ];
