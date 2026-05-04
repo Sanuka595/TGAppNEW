@@ -1,4 +1,4 @@
-import { useCallback, useEffect } from 'react';
+import { useCallback, useEffect, useState } from 'react';
 import { MainLayout } from './components/MainLayout';
 import { RadialBoard } from './components/game/RadialBoard';
 import { GarageView } from './components/game/GarageView';
@@ -13,11 +13,14 @@ import { useTelegram } from './hooks/useTelegram';
 import { getTmaStartParam } from './lib/tmaProvider';
 import { DevPanel } from './components/game/DevPanel';
 import { EventFeed } from './components/game/EventFeed';
+import { TutorialOverlay } from './components/game/TutorialOverlay';
+import { ResetConfirmModal } from './components/game/ResetConfirmModal';
 
 export default function App(): JSX.Element {
   const { haptic, webApp } = useTelegram();
   const activeTab = useUiStore((s) => s.activeTab);
   const logs = useGameStore(s => s.logs);
+  const [showResetConfirm, setShowResetConfirm] = useState(false);
 
   const handleStartParam = useCallback((param: string) => {
     if (param === 'solo') {
@@ -33,8 +36,7 @@ export default function App(): JSX.Element {
     }
 
     if (param === 'reset') {
-      useGameStore.getState().resetAccount();
-      haptic('impact', 'medium');
+      setShowResetConfirm(true);
       return;
     }
 
@@ -123,6 +125,16 @@ export default function App(): JSX.Element {
       <RaceModal />
       <EventFeed />
       <DevPanel />
+      <TutorialOverlay />
+      <ResetConfirmModal
+        open={showResetConfirm}
+        onConfirm={() => {
+          useGameStore.getState().resetAccount();
+          haptic('impact', 'medium');
+          setShowResetConfirm(false);
+        }}
+        onCancel={() => setShowResetConfirm(false)}
+      />
     </MainLayout>
   );
 }
