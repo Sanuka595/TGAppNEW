@@ -28,6 +28,12 @@ export const CAR_MODELS_DB: CarModel[] = [
   { name: 'ЗАЗ Таврия',         tier: 'Bucket',  basePriceRange: [300,   700], description: 'Самое страшное, что может случиться с деньгами.' },
   { name: 'Иж 2126 Ода',        tier: 'Bucket',  basePriceRange: [500,   950], description: 'Ода отчаянию. Стальной гроб Ижевского завода.' },
   { name: 'Chevrolet Aveo T200',tier: 'Bucket',  basePriceRange: [900,  1400], description: 'Мечта курьера. Тяга есть, логики нет.' },
+  // YouTube-проекты (Bucket)
+  { name: 'Жигули за 50к',      tier: 'Bucket',  basePriceRange: [300,   600], description: 'Типичный проект «выжать всё из мусора» от Гарика Угарика.' },
+  { name: 'Перекуп на минималках', tier: 'Bucket', basePriceRange: [500,  1000], description: 'Очередное ведро Менеджера Антона. Надежда умирает последней.' },
+  { name: 'Проект Миллион (Старт)', tier: 'Bucket', basePriceRange: [800, 1500], description: 'С этого начинается путь к миллиону Жекича Дубровского.' },
+  { name: 'BMW за копейки',     tier: 'Bucket',  basePriceRange: [600,  1200], description: 'Баварец по низу рынка от Булкина. Больше изоленты, чем металла.' },
+  { name: 'Жигули-лоурайдер',   tier: 'Bucket',  basePriceRange: [700,  1300], description: 'Классика стенса. Искры из-под днища на каждом лежачем.' },
 
   // ─── SCRAP ($3,000–$9,000) ──────────────────────────────────────────────────
   { name: 'BMW 5 Series E60',   tier: 'Scrap',   basePriceRange: [5000, 9000], description: 'Бумер с гнилыми порогами. Обслуживание требует второй ипотеки.' },
@@ -44,6 +50,17 @@ export const CAR_MODELS_DB: CarModel[] = [
   { name: 'Chrysler 300C W1',   tier: 'Scrap',   basePriceRange: [4000, 7000], description: 'Бандитская классика. Бензин кушает, как дракон.' },
   { name: 'Subaru Outback BP',  tier: 'Scrap',   basePriceRange: [3500, 6500], description: 'Легенда аутдора. Ремни ГРМ — это постоянная боль.' },
   { name: 'Kia Optima TF',      tier: 'Scrap',   basePriceRange: [3500, 6000], description: 'Красивый снаружи, непредсказуемый внутри.' },
+  // YouTube-проекты (Scrap)
+  { name: 'Оказия',             tier: 'Scrap',   basePriceRange: [3000, 5000], description: 'Бешеная Ока Гарика Угарика. Кузов трещит по швам от мощности.' },
+  { name: 'Тачка на прокачку',  tier: 'Scrap',   basePriceRange: [4000, 7500], description: 'Мониторы в подголовниках от Гордея, но мотор всё равно троит.' },
+  { name: 'Оживление мертвеца', tier: 'Scrap',   basePriceRange: [5000, 9000], description: 'Ильдар автоподбор одобряет. W140/E38, поднятые с колен.' },
+  { name: 'Шишига (ГАЗ-66)',    tier: 'Scrap',   basePriceRange: [6000, 9000], description: 'Монстр Combat Crew. Проходит там, где танки встают.' },
+  { name: 'УАЗ на 40 колесах',  tier: 'Scrap',   basePriceRange: [4500, 8000], description: 'Классика внедорожного тюнинга. Расход как у фуры.' },
+  { name: 'ЗиЛ Захар',          tier: 'Scrap',   basePriceRange: [5000, 8500], description: 'Советская легенда из болота от Combat Crew.' },
+  { name: 'Нива-монстр',        tier: 'Scrap',   basePriceRange: [3500, 6500], description: 'Экстремальный лифт канала Не Тормози.' },
+  { name: 'Громкая приора',     tier: 'Scrap',   basePriceRange: [3000, 5500], description: 'Loud Sound. Стекла вылетают быстрее, чем она разгоняется.' },
+  { name: 'CyberTruck Гаражный',tier: 'Scrap',   basePriceRange: [4000, 7000], description: 'Листы стали и сварка. Илон Маск плачет.' },
+  { name: 'Реплика Ferrari',    tier: 'Scrap',   basePriceRange: [5000, 8500], description: 'Стеклопластиковый кузов, мотор от старой Тойоты. Понты дороже денег.' },
 
   // ─── BUSINESS ($12,000–$22,000) ─────────────────────────────────────────────
   { name: 'Toyota Camry V50',   tier: 'Business', basePriceRange: [13000, 18000], description: 'Тот самый Камри, на котором ездит половина чиновников.' },
@@ -56,6 +73,10 @@ export const CAR_MODELS_DB: CarModel[] = [
   { name: 'Volvo S80 II',       tier: 'Business', basePriceRange: [11000, 15000], description: 'Для тех, кто любит безопасность и шведскую депрессию.' },
   { name: 'VW Phaeton',         tier: 'Business', basePriceRange: [10000, 16000], description: 'Скрытый флагман VW. Обслуживание — как у Bentley. Потому что он и есть Bentley.' },
   { name: 'Jaguar XF X250',     tier: 'Business', basePriceRange: [11000, 17000], description: 'Британское очарование и британская надёжность. Удачи вам.' },
+  // YouTube-проекты (Business)
+  { name: 'Москвич Циклоп',     tier: 'Business', basePriceRange: [12000, 16000], description: 'Качественный кастом от Игоря Бурцева. Глаз не оторвать.' },
+  { name: 'Газель-ракета',      tier: 'Business', basePriceRange: [10000, 15000], description: 'Газель с 1UZ-FE от AcademeG. Доставляет грузы быстрее мысли.' },
+  { name: 'Low Classic Волга',  tier: 'Business', basePriceRange: [11000, 15000], description: 'Стильная ГАЗ-24 на пневме. Плывет над асфальтом.' },
 
   // ─── PREMIUM ($25,000–$60,000) ──────────────────────────────────────────────
   { name: 'Porsche Cayenne 958', tier: 'Premium', basePriceRange: [30000, 50000], description: 'Когда нужен джип, но хочется Порше.' },
@@ -69,6 +90,13 @@ export const CAR_MODELS_DB: CarModel[] = [
   // Новый премиум
   { name: 'Lamborghini Urus',   tier: 'Premium', basePriceRange: [60000, 95000], description: 'Итальянский трактор. Оба цилиндра разбудят весь квартал.' },
   { name: 'Bentley Continental GT', tier: 'Premium', basePriceRange: [45000, 75000], description: 'Ты не просто едешь — ты плывёшь. Дорогой шум двигателя.' },
+  // YouTube-проекты (Premium)
+  { name: 'Audi RS6 (Булкин/DSC)', tier: 'Premium', basePriceRange: [50000, 60000], description: 'Семейный универсал на 1000 л.с. Картошка доедет быстро.' },
+  { name: 'Porsche 911 Turbo S', tier: 'Premium', basePriceRange: [55000, 60000], description: 'Король скорости от Gosha Turbo Tech. Рвет всех со старта.' },
+  { name: 'Grand Cherokee SRT', tier: 'Premium', basePriceRange: [40000, 55000], description: 'Кирпич, обгоняющий суперкары. Тот самый SRT.' },
+  { name: 'Гелик против всех',  tier: 'Premium', basePriceRange: [45000, 60000], description: 'G-класс для болот от Менеджера Антона. Дорогое удовольствие в грязи.' },
+  { name: 'Land Cruiser Арктика', tier: 'Premium', basePriceRange: [50000, 60000], description: 'Подготовлен для Севера. Переживет ядерную зиму.' },
+  { name: 'Escalade Loud Sound', tier: 'Premium', basePriceRange: [40000, 55000], description: 'Гигантский сабвуфер на колесах. Массаж внутренних органов в комплекте.' },
 
   // ─── RARITY ($40,000–$250,000) ──────────────────────────────────────────────
   { name: 'Toyota Supra MK4',   tier: 'Rarity',  basePriceRange: [55000,  120000], description: 'Легенда Toretto. 2JZ переживёт всё, кроме вас.' },
@@ -84,6 +112,21 @@ export const CAR_MODELS_DB: CarModel[] = [
   { name: 'De Tomaso Pantera',  tier: 'Rarity',  basePriceRange: [120000, 220000], description: 'Итальянский кузов, американский V8. Инженерное безумие 70-х.' },
   { name: 'DeLorean DMC-12',    tier: 'Rarity',  basePriceRange: [40000,  80000], description: 'На нём можно уехать в будущее. Если заведётся.' },
   { name: 'Pagani Huayra',      tier: 'Rarity',  basePriceRange: [500000, 800000], description: 'Искусство на колёсах. Гиперкар, который Канье мог бы себе позволить (наверное).' },
+  // YouTube-проекты (Rarity)
+  { name: 'Волга с V12',        tier: 'Rarity',  basePriceRange: [80000, 150000], description: 'ГАЗ-21 на агрегатах BMW от Ивана Зенкевича. Волк в овечьей шкуре.' },
+  { name: 'Нива на 1000+ сил',  tier: 'Rarity',  basePriceRange: [70000, 120000], description: 'Дрэг-стер из внедорожника от DSC OFF. Неуправляемая ракета.' },
+  { name: 'Победа-гиперкар',    tier: 'Rarity',  basePriceRange: [150000, 300000], description: 'Проект Клим. Суперкар в шкуре старой Победы.' },
+  { name: 'КамАЗ для дрифта',   tier: 'Rarity',  basePriceRange: [100000, 200000], description: 'Многотонник боком от AcademeG. Законы физики вышли из чата.' },
+  { name: 'Lada Eve',           tier: 'Rarity',  basePriceRange: [200000, 400000], description: 'Идеальная жига Гурама с бюджетом суперкара.' },
+  { name: 'BMW M5 F90 Тень',    tier: 'Rarity',  basePriceRange: [150000, 250000], description: 'Самая быстрая M5 в СНГ от DSC OFF. Черная молния.' },
+  { name: 'Huracan 2000hp',     tier: 'Rarity',  basePriceRange: [300000, 600000], description: 'Битурбо монстр Underground Racing. Слишком быстро для улиц.' },
+  { name: 'Nissan GTR Годзилла', tier: 'Rarity', basePriceRange: [120000, 250000], description: 'Икона тюнинга. Звук выхлопа пугает прохожих.' },
+  { name: 'Mercedes W111 Classic', tier: 'Rarity', basePriceRange: [150000, 300000], description: 'Детально восстановленный шедевр (DSC OFF).' },
+  { name: 'Lada Raven',         tier: 'Rarity',  basePriceRange: [250000, 500000], description: 'Мифический концепт, ставший мечтой.' },
+  { name: 'Marussia B1/B2',     tier: 'Rarity',  basePriceRange: [180000, 350000], description: 'Русский суперкар. Красивый и очень редкий.' },
+  { name: 'BMW M5 CSL',         tier: 'Rarity',  basePriceRange: [200000, 400000], description: 'Редчайший экземпляр M-серии. Мечта коллекционера.' },
+  { name: 'Rolls-Royce дрифт',  tier: 'Rarity',  basePriceRange: [250000, 450000], description: 'Роскошь, которую используют не по назначению.' },
+  { name: 'Золотая BMW',        tier: 'Rarity',  basePriceRange: [100000, 200000], description: 'Легенда раннего авто-ютуба от Давидыча. Слепит на солнце.' },
 
   // ─── ЛЕГЕНДЫ И МЕМЫ ────────────────────────────────────────────────────────
   {
