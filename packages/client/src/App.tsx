@@ -12,6 +12,7 @@ import { useUiStore } from './store/uiStore';
 import { useTelegram } from './hooks/useTelegram';
 import { getTmaStartParam } from './lib/tmaProvider';
 import { DevPanel } from './components/game/DevPanel';
+import { EventFeed } from './components/game/EventFeed';
 
 export default function App(): JSX.Element {
   const { haptic, webApp } = useTelegram();
@@ -120,6 +121,7 @@ export default function App(): JSX.Element {
       <ActionModal />
       <MultiplayerModal />
       <RaceModal />
+      <EventFeed />
       <DevPanel />
     </MainLayout>
   );

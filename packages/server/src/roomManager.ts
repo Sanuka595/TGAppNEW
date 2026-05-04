@@ -168,6 +168,11 @@ export const passTurn = (roomId: string): RoomState | null => {
             garage: [...(lender.garage ?? []), { ...car, isLocked: false }],
           };
           debts[i] = { ...debts[i]!, status: 'confiscated' };
+          pushFeedEvent(room, {
+            playerId: debt.lenderId,
+            type: 'confiscate',
+            text: `конфисковал ${car.name} у должника`,
+          });
         }
       }
     }
@@ -280,6 +285,12 @@ export const processBuyCar = (roomId: string, playerId: string, carId: string): 
   // Track for Smart Event Director
   if (room.marketStats) room.marketStats.boughtByTier[car.tier] = (room.marketStats.boughtByTier[car.tier] ?? 0) + 1;
 
+  pushFeedEvent(room, {
+    playerId,
+    type: 'buy',
+    text: `купил ${car.name} за $${price.toFixed(0)}`,
+  });
+
   touch(roomId);
   return { success: true, room };
 };
@@ -316,6 +327,12 @@ export const processSellCar = (roomId: string, playerId: string, carId: string):
   };
 
   if (newBalance.gte(room.winCondition)) room.winnerId = playerId;
+
+  pushFeedEvent(room, {
+    playerId,
+    type: 'sell',
+    text: `продал ${car.name} за $${sellPrice.toFixed(0)}`,
+  });
 
   touch(roomId);
   return { success: true, room };
@@ -633,6 +650,12 @@ export const processRaceResolve = (roomId: string): RaceResolveResult | null => 
   };
 
   if (room.marketStats) room.marketStats.racesWon++;
+
+  pushFeedEvent(room, {
+    playerId: winner.playerId,
+    type: 'race_win',
+    text: `выиграл гонку и забрал $${race.bet}`,
+  });
 
   touch(roomId);
   return { room, winnerId: winner.playerId, loserId: loser.playerId, logs, bet: race.bet };
