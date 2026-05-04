@@ -36,17 +36,18 @@
 ├─────────────────────────────────────────────────┤
 │  DOMAIN LAYER (packages/shared)                 │
 │  businessLogic.ts — ядро расчётов (pure fn)     │
-│  constants.ts — игровые константы               │
+│  constants.ts — игровые константы и пороги      │
 │  carDatabase.ts, defectDatabase.ts — контент    │
+│  newsDatabase.ts — события рынка (14 штук)      │
 │  dtos/ — Zod схемы (единственный источник типов)│
 ├─────────────────────────────────────────────────┤
 │  INFRASTRUCTURE LAYER (packages/server)         │
 │  Authoritative Server (Express + Socket.IO)     │
-│  Валидация транзакций, управление комнатами     │
+│  Транзакции, Smart Event Director, EventFeed    │
 └─────────────────────────────────────────────────┘
 ```
 
-**Принцип shared-first:** все игровые формулы и константы живут в `packages/shared` и импортируются клиентом и сервером. Расчёты гарантированно идентичны на всех слоях.
+**Принцип shared-first:** все игровые формулы, константы и пороги прогрессии живут в `packages/shared`. Расчёты гарантированно идентичны на всех слоях.
 
 ---
 
@@ -57,35 +58,49 @@ TGPEREKUP/
 ├── packages/
 │   ├── shared/                    # ОБЩИЙ ПАКЕТ
 │   │   └── src/
-│   │       ├── dtos/              # Zod схемы (Car, Player, Room)
-│   │       ├── businessLogic.ts   # Чистые функции расчётов (Decimal.js)
-│   │       ├── constants.ts       # Игровые константы (стоимости, лимиты)
-│   │       ├── carDatabase.ts     # Модели авто
-│   │       ├── defectDatabase.ts  # Список дефектов
-│   │       ├── newsDatabase.ts    # События рынка
+│   │       ├── dtos/              # Zod схемы (Car, Player, Room, MarketStats, EventFeedEntry)
+│   │       ├── businessLogic.ts   # Чистые функции: расчёты цен, гонки, прогрессия, событийный директор
+│   │       ├── constants.ts       # Константы стоимостей + пороги разблокировки (DIAGNOSTICS_UNLOCK_THRESHOLD)
+│   │       ├── carDatabase.ts     # Модели авто (imageId, forcedDefectIds для легенд)
+│   │       ├── defectDatabase.ts  # Список дефектов (+ legendary: tracks_off, electric_fire)
+│   │       ├── newsDatabase.ts    # 14 событий рынка (10 стандартных + 4 для Smart Event Director)
 │   │       └── types.ts           # Системные типы и GAME_MAP
 │   ├── client/                    # ФРОНТЕНД
 │   │   └── src/
 │   │       ├── components/
-│   │       │   ├── game/          # ActionModal, RadialBoard, DiceArea, …
-│   │       │   └── ui/            # Базовые компоненты
+│   │       │   ├── game/
+│   │       │   │   ├── ActionModal.tsx      # Действия на клетке (ремонт, диагностика с 🔒)
+│   │       │   │   ├── CarCard.tsx          # TCG-карточка авто (imageId / emoji fallback)
+│   │       │   │   ├── EventFeed.tsx        # Глобальная лента событий (fixed overlay, мультиплеер)
+│   │       │   │   ├── TutorialOverlay.tsx  # Онбординг (3 слайда, localStorage флаг)
+│   │       │   │   ├── ResetConfirmModal.tsx# Подтверждение сброса прогресса
+│   │       │   │   ├── RadialBoard.tsx      # Карта 12 клеток (SVG + Framer Motion)
+│   │       │   │   ├── DiceArea.tsx         # Бросок D6 + тактические ходы
+│   │       │   │   ├── GarageView.tsx       # Гараж игрока
+│   │       │   │   ├── MarketView.tsx       # Рынок (покупка/продажа, диагностика с 🔒)
+│   │       │   │   ├── DealsView.tsx        # P2P займы
+│   │       │   │   ├── RaceModal.tsx        # Гонки
+│   │       │   │   └── MultiplayerModal.tsx # Создание/вход + кнопка "Пригласить"
+│   │       │   └── ui/                      # Базовые компоненты (Button, …)
+│   │       ├── config/
+│   │       │   └── ui.ts                    # TIER_COLORS, TIER_CONFIG (с border/glow токенами)
 │   │       ├── store/
-│   │       │   ├── gameStore.ts       # Тонкий ассемблер (~68 строк)
-│   │       │   ├── store.types.ts     # GameStore interface
-│   │       │   ├── socketListeners.ts # Socket.IO listeners
-│   │       │   ├── storage.ts         # TMA-совместимый persist-адаптер
+│   │       │   ├── gameStore.ts             # Тонкий ассемблер (~68 строк)
+│   │       │   ├── store.types.ts           # GameStore interface
+│   │       │   ├── socketListeners.ts       # Socket.IO listeners
+│   │       │   ├── storage.ts               # TMA-совместимый persist-адаптер
 │   │       │   └── slices/
-│   │       │       ├── playerSlice.ts      # Стейт + createPlayerSlice
-│   │       │       ├── soloSlice.ts        # Стейт + createSoloSlice
-│   │       │       └── multiplayerSlice.ts # Стейт + createMultiplayerSlice
+│   │       │       ├── playerSlice.ts       # Стейт + createPlayerSlice (с canUseDiagnostics guard)
+│   │       │       ├── soloSlice.ts         # Стейт + createSoloSlice
+│   │       │       └── multiplayerSlice.ts  # Стейт + createMultiplayerSlice (eventFeed)
 │   │       └── lib/
-│   │           ├── tmaProvider.ts  # Haptic feedback, TMA init
-│   │           └── socket.ts       # Socket.IO client singleton
+│   │           ├── tmaProvider.ts           # Haptic feedback, TMA init, cloudStorage
+│   │           └── socket.ts               # Socket.IO client singleton
 │   └── server/                    # БЭКЕНД
 │       └── src/
-│           ├── index.ts            # Express + Socket.IO + Bot
-│           ├── roomManager.ts      # Авторитарная логика комнат
-│           └── socketHandlers.ts   # Диспетчер сокет-событий
+│           ├── index.ts            # Express + Socket.IO + Telegram Bot
+│           ├── roomManager.ts      # Авторитарная логика: транзакции, pushFeedEvent, Smart Event Director
+│           └── socketHandlers.ts   # Диспетчер + progression gate (diagnoseCar / diagnoseMarketCar)
 ├── Dockerfile
 ├── railway.json
 └── package.json                   # Workspaces config
@@ -96,14 +111,10 @@ TGPEREKUP/
 ## 5. Переменные окружения
 
 ```env
-# Telegram Bot
 BOT_TOKEN=...
-# Server
 PORT=3000
 NODE_ENV=production
-# CORS
 ALLOWED_ORIGINS=https://...
-# Frontend
 VITE_SOCKET_URL=/
 ```
 
@@ -111,12 +122,12 @@ VITE_SOCKET_URL=/
 
 ## 6. Серверная архитектура (Authoritative Server)
 
-Сервер является единственным источником истины. Все важные изменения состояния (деньги, гараж, позиция) происходят на сервере после валидации.
+Сервер является единственным источником истины. Все важные изменения состояния происходят на сервере после валидации.
 
 **Процесс действия:**
 1. Клиент отправляет запрос через `sync_action`.
-2. Сервер вызывает нужный метод `roomManager` (например, `processBuyCar`).
-3. При успехе сервер обновляет `RoomState` и рассылает `room_updated`.
+2. Сервер вызывает нужный метод `roomManager`.
+3. При успехе сервер обновляет `RoomState` (включая `eventFeed` и `marketStats`) и рассылает `room_updated`.
 
 ---
 
@@ -128,22 +139,23 @@ VITE_SOCKET_URL=/
 | `create_room` | `{ player, winCondition }` | Создать игру |
 | `join_room` | `{ roomId, player }` | Войти в игру |
 | `dice_roll` | `{ roomId, playerId }` | Бросок кубика |
-| `pass_turn` | `{ roomId, playerId }` | Передать ход |
-| `sync_action` | `{ action, payload }` | Действие (buyCar, repair и т.д.) |
+| `pass_turn` | `{ roomId, playerId }` | Передать ход (сервер запускает Smart Event Director) |
+| `sync_action` | `{ action, payload }` | Игровое действие |
 
 ### Server → Client
 | Событие | Payload | Описание |
 |---|---|---|
-| `room_updated` | `RoomState` | Обновленное состояние комнаты |
+| `room_updated` | `RoomState` | Полное состояние комнаты (включает `eventFeed`, `marketStats`, `activeEvent`) |
 | `dice_roll_result` | `{ playerId, diceValue, newPosition }` | Результат броска |
 | `sync_action_result` | `{ playerId, action, payload }` | Реле действия другого игрока |
-| `room_error` | `string` | Ошибка валидации |
+| `room_error` | `string` | Ошибка валидации (в т.ч. прогрессия-лок диагностики) |
 
 ---
 
 ## 8. Безопасность
 
-- **Валидация**: Каждое действие проверяется в `roomManager.ts` на предмет очередности хода, баланса и прав владения.
-- **Zod**: Все входящие DTO проходят проверку схем.
-- **Haptic**: Обратная связь через Telegram Haptic Feedback интегрирована в клиент.
-- **Shared constants**: Игровые константы (стоимости, лимиты) импортируются с одного источника — дублирование и рассинхрон исключены.
+- **Авторитарный сервер**: баланс, гараж, позиция — только через `roomManager`.
+- **Zod**: входящие DTO проходят проверку схем.
+- **Progression gate**: `socketHandlers.ts` блокирует `diagnoseCar`/`diagnoseMarketCar` если `canUseDiagnostics(player) === false`.
+- **Shared constants**: все числовые параметры игры в `constants.ts` — один источник правды.
+- **Haptic**: обратная связь через Telegram Haptic Feedback.

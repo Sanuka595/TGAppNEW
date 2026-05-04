@@ -5,52 +5,45 @@
 
 ## 1. Zustand Store — архитектура слайсов
 
-В проекте используется **Zustand 5** с паттерном `StateCreator` для разбивки стора на доменные слайсы. Каждый слайс содержит **и типы состояния, и реализацию экшенов**. Основной стор является тонким ассемблером.
+Zustand 5 с паттерном `StateCreator`. Каждый слайс содержит **и типы состояния, и реализацию экшенов**. Основной стор — тонкий ассемблер (~68 строк).
 
 ```
 packages/client/src/store/
-├── gameStore.ts           # ~68 строк: create() + persist + dev tools
-├── store.types.ts         # GameStore interface (объединяет все слайсы)
-├── socketListeners.ts     # initSocketListeners() — отдельный модуль
-├── storage.ts             # TMA-совместимый persist-адаптер
+├── gameStore.ts             # create() + persist + resetAccount + dev tools
+├── store.types.ts           # GameStore interface (объединяет все слайсы)
+├── socketListeners.ts       # initSocketListeners() — отдельный модуль
+├── storage.ts               # TMA-совместимый persist-адаптер
 └── slices/
-    ├── playerSlice.ts     # Стейт игрока + createPlayerSlice()
-    ├── soloSlice.ts       # Стейт соло-режима + createSoloSlice()
-    └── multiplayerSlice.ts# Стейт мультиплеера + createMultiplayerSlice()
+    ├── playerSlice.ts       # Стейт + createPlayerSlice (canUseDiagnostics guards)
+    ├── soloSlice.ts         # Стейт + createSoloSlice
+    └── multiplayerSlice.ts  # Стейт + createMultiplayerSlice (eventFeed)
 ```
 
 ---
 
 ## 2. Паттерн StateCreator
 
-Каждый слайс экспортирует фабрику, типизированную через `StateCreator<GameStore>`. `get()` внутри любого слайса возвращает **весь** стор — перекрёстный доступ к данным других слайсов гарантирован.
+`get()` внутри любого слайса возвращает **весь** стор — перекрёстный доступ гарантирован.
 
 ```typescript
-// Пример: playerSlice.ts
-import { type StateCreator } from 'zustand';
-import type { GameStore } from '../store.types';
-
 export const createPlayerSlice: StateCreator<GameStore, [['zustand/persist', unknown]], [], PlayerSlice> =
   (set, get) => ({
     ...initialPlayerState,
     buyCar: (carId) => {
-      const { player, market, activeEvent } = get(); // полный доступ к GameStore
+      const { player, market, activeEvent } = get();
       // ...
     },
   });
-```
 
-```typescript
-// gameStore.ts — сборка
+// gameStore.ts
 export const useGameStore = create<GameStore>()(
   persist(
     (set, get, api) => ({
       ...createPlayerSlice(set, get, api),
       ...createSoloSlice(set, get, api),
       ...createMultiplayerSlice(set, get, api),
-      resetAccount: () => { /* cross-slice */ },
-      devAddMoney: (amount) => { /* dev only */ },
-      // ...
+      resetAccount: () => { ... },       // cross-slice
+      devAddMoney: (amount) => { ... },  // dev tools
     }),
     { name: 'perekup-storage', ... }
   )
@@ -72,12 +65,10 @@ export interface GameStore extends PlayerSlice, SoloSlice, MultiplayerSlice {
 }
 ```
 
-### PlayerSlice (`slices/playerSlice.ts`)
-
-**Стейт:**
+### PlayerSlice — ключевые поля
 ```typescript
 interface PlayerState {
-  player: Player;        // ← перемещено из gameStore в слайс
+  player: Player;       // включает totalEarned для прогрессии
   garage: Car[];
   market: Car[];
   currentEvent: BoardCell | null;
@@ -89,59 +80,78 @@ interface PlayerState {
 }
 ```
 
-**Экшены:**
-`buyCar`, `sellCar`, `repairCar`, `diagnoseCar`, `diagnoseMarketCar`, `rentCar`, `buyEnergy`, `startRace`, `refreshMarket`, `updateNews`, `executeCellAction`, `rollDice`, `manualMove`, `addLog`, `updateMarket`, `setActiveEvent`, `setCurrentEvent`
+**Экшены с защитой прогрессии:**
+- `diagnoseCar`, `diagnoseMarketCar` — проверяют `canUseDiagnostics(player)` перед выполнением
+- `sellCar` — инкрементирует `player.totalEarned` в соло-режиме
 
-### SoloSlice (`slices/soloSlice.ts`)
+### MultiplayerSlice — ключевые поля
+```typescript
+interface MultiplayerState {
+  roomId: string | null;
+  players: Player[];
+  activeDebts: Debt[];
+  isHost: boolean;
+  currentTurnIndex: number;
+  winCondition: number;
+  winnerId: string | null;
+  activeRace: RaceDuel | null;
+  pendingRaceChallenge: RaceDuel | null;
+  eventFeed: EventFeedEntry[];   // ← серверная лента событий (Phase 4)
+}
+```
 
-**Стейт:** `isSoloMode`, `soloDebt`, `botTurnsUntilAction`, `activeQuest`
-
-**Экшены:** `startSoloMode`, `processBotTurn`, `setActiveQuest`, `resetSoloDebt`
-
-### MultiplayerSlice (`slices/multiplayerSlice.ts`)
-
-**Стейт:** `roomId`, `players`, `activeDebts`, `isHost`, `currentTurnIndex`, `winCondition`, `winnerId`, `activeRace`, `remoteAnimation`, `pendingRaceChallenge`
-
-**Экшены:** `createRoom`, `joinRoom`, `leaveRoom`, `syncRoomState`, `handleDiceRollResult`, `handleRemoteAction`, `passTurn`, `offerLoan`, `acceptLoan`, `repayDebt`, `initiateRaceDuel`, `acceptRaceDuel`, `declineRaceDuel`, сеттеры (`setActiveRace`, …)
+`syncRoomState` получает `room_updated` и обновляет `eventFeed: roomState.eventFeed ?? state.eventFeed`.
 
 ---
 
 ## 4. Socket.IO listeners (`socketListeners.ts`)
 
-Инициализация слушателей вынесена из `gameStore.ts` в отдельный модуль. Вызывается один раз в `App.tsx` при монтировании.
-
 ```typescript
-// App.tsx
-import { initSocketListeners } from './store/gameStore'; // re-export из socketListeners.ts
-
+// App.tsx — вызывается один раз при монтировании
+import { initSocketListeners } from './store/gameStore';
 useEffect(() => { initSocketListeners(); }, []);
 ```
 
-**Обрабатываемые события:**
-- `room_updated` → `syncRoomState(roomState)`
-- `dice_roll_result` → `handleDiceRollResult(playerId, diceValue, newPosition)`
-- `sync_action_result` → `handleRemoteAction(data)`
-- `room_error` → `addLog('[SERVER ERROR]: …', 'error')`
+Обрабатываемые события:
+- `room_updated` → `syncRoomState` (обновляет весь стор включая `eventFeed`)
+- `dice_roll_result` → `handleDiceRollResult`
+- `sync_action_result` → `handleRemoteAction`
+- `room_error` → `addLog('[SERVER ERROR]: …')`
 - `connect` → переподключение к комнате при реконнекте
 
 ---
 
-## 5. Ключевые компоненты (React 19)
+## 5. Компоненты (React 19)
 
-### Основной макет
-- **App.tsx**: Корневой компонент. Инициализирует сокеты, обрабатывает `start_param` (deep links) и управляет переключением вкладок через `MainLayout`.
-- **TopBar.tsx**: Отображает баланс, энергию и репутацию игрока.
-- **BottomNavigation.tsx**: Переключатель вкладок (Гараж, Карта, Сделки, Маркет).
+### Игровой цикл
+| Компонент | Описание |
+|---|---|
+| `RadialBoard.tsx` | Карта 12 клеток (SVG + Framer Motion) |
+| `DiceArea.tsx` | Бросок D6 + тактические ходы (+1/+2/+3) |
+| `ActionModal.tsx` | Действия на клетке (ремонт, диагностика с 🔒 при `!canUseDiagnostics`) |
+| `GarageView.tsx` | Гараж игрока |
+| `MarketView.tsx` | Рынок (покупка/продажа, диагностика с 🔒) |
+| `DealsView.tsx` | P2P займы |
+| `RaceModal.tsx` | Интерфейс гонок |
+| `MultiplayerModal.tsx` | Создание / вход + кнопка "Пригласить друга" |
 
-### Игровые экраны (`game/`)
-- **RadialBoard.tsx**: Радиальная карта на 12 клеток. Отрисовывается через SVG с анимациями Framer Motion.
-- **DiceArea.tsx**: Центральная область карты. Содержит кнопку броска D6 и кнопки тактических ходов (+1, +2, +3).
-- **GarageView.tsx**: Список купленных автомобилей с возможностью ремонта и тюнинга.
-- **MarketView.tsx**: Витрина доступных для покупки автомобилей.
-- **DealsView.tsx**: Биржа P2P займов и текущие сделки.
-- **ActionModal.tsx**: Универсальная модалка для взаимодействия с клеткой.
-- **RaceModal.tsx**: Интерфейс проведения гонок и выбора ставок.
-- **DevPanel.tsx**: Панель разработчика (только в DEV-режиме).
+### Новые компоненты (Phase 4–6)
+| Компонент | Описание |
+|---|---|
+| `EventFeed.tsx` | Глобальная лента: фиксированный оверлей справа вверху, последние 5 событий, AnimatePresence slide-in. Виден только в мультиплеере. |
+| `TutorialOverlay.tsx` | Онбординг при первом запуске: 3 слайда (покупка → ремонт → победа), прогресс-дотки, флаг `perekup-tutorial-done` в localStorage. |
+| `ResetConfirmModal.tsx` | Диалог подтверждения сброса прогресса. Вызывается вместо прямого `resetAccount()` при deep-link `/reset`. |
+| `CarCard.tsx` | TCG-карточка авто: `imageId` → SVG-ассет, fallback — тирный эмодзи; health bar с цветом тира; badge дефектов; badge 🔒 для залога. |
+
+### UI-конфиг (`config/ui.ts`)
+```typescript
+export const TIER_CONFIG: Record<CarTier, {
+  color:  string;   // gradient Tailwind: 'from-X to-Y'
+  label:  string;   // локализованное название
+  border: string;   // border-color для CarCard
+  glow:   string;   // shadow-color для карточки
+}> = { ... };
+```
 
 ---
 
@@ -150,15 +160,15 @@ useEffect(() => { initSocketListeners(); }, []);
 | `start_param` | Поведение |
 |---|---|
 | `solo` | Запуск одиночного режима |
-| `multi` | Открытие окна создания/поиска комнаты |
-| `reset` | Полный сброс прогресса (`resetAccount()`) |
+| `multi` | Открытие MultiplayerModal |
+| `reset` | Открывает `ResetConfirmModal` (раньше — прямой сброс без предупреждения) |
 | `ROOM_ID` | Автоматическое присоединение к комнате |
 
 ---
 
 ## 7. Оптимизация
 
-- **Атомарные селекторы**: `const balance = useGameStore(s => s.player.balance)` предотвращает лишние ререндеры — компонент обновляется только при изменении конкретного поля.
-- **React.memo**: Используется для `CellIcon` и элементов лога.
-- **Decimal.js**: Все финансовые вычисления производятся только через этот тип.
-- **Изоляция слайсов**: `set()` всегда получает минимальный diff — не весь стор целиком.
+- **Атомарные селекторы**: `useGameStore(s => s.player.balance)` — ререндер только при изменении конкретного поля.
+- **React.memo**: `EventFeedItem` мемоизирован для предотвращения ненужных ре-рендеров при обновлении ленты.
+- **Decimal.js**: все финансовые операции только через этот тип.
+- **eventFeed cap**: максимум 20 записей в `RoomState.eventFeed` — размер `room_updated` не растёт неограниченно.

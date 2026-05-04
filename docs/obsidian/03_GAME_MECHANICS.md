@@ -1,73 +1,80 @@
 # Перекуп D6 — Полная техническая документация
 ## Файл 3 из 6: Игровые Механики и Экономика
 
-> Все формулы и константы живут в `packages/shared/src/businessLogic.ts` и `packages/shared/src/constants.ts`. Клиент и сервер импортируют одни и те же чистые функции — рассинхрон исключён.
+> Все формулы и константы — в `packages/shared/src/businessLogic.ts` и `constants.ts`. Клиент и сервер импортируют одни и те же чистые функции.
 
 ---
 
 ## 1. Карта и Перемещение
 
-Игровое поле состоит из 12 клеток. Формула: `newPosition = (currentPosition + steps) % 12`.
+12 клеток. `newPosition = (currentPosition + steps) % 12`.
 
 ### Бросок D6
-Клиент вызывает `rollDice()`. В соло-режиме результат обрабатывается локально через `handleDiceRollResult`. В мультиплеере — делегируется серверу через событие `dice_roll`.
+`rollDice()` в соло решается локально через `handleDiceRollResult`. В мультиплеере — сервер через `dice_roll`.
 
 ### Тактический ход (Энергия)
-- **Максимум**: `MAX_ENERGY = 3` (из `constants.ts`)
-- **Стоимость**: 1 энергия за ход (+1, +2 или +3 клетки)
+- **Максимум**: `MAX_ENERGY = 3`
+- **Стоимость**: 1 ед. энергии за ход (+1/+2/+3 клетки)
 - **Покупка**: $`ENERGY_PURCHASE_COST = 500` на клетке `sale`
 
-### Случайные встречи на дороге
-При каждом броске D6 с вероятностью **15%** срабатывает случайное событие. Логика вынесена в чистую функцию `resolveRandomEncounter()` из `shared`:
-
+### Случайные встречи — `resolveRandomEncounter()`
+При каждом броске D6 с вероятностью **15%** срабатывает встреча:
 ```typescript
-export function resolveRandomEncounter(): RandomEncounter | null {
-  if (Math.random() >= 0.15) return null;
-  const isBad = Math.random() > 0.5;
-  return isBad
-    ? { type: 'fine',  amount: 100 + Math.floor(Math.random() * 200) }  // ГАИ
-    : { type: 'bonus', amount: 50  + Math.floor(Math.random() * 150) }; // Заначка
-}
+{ type: 'fine',  amount: $100–$300 }  // ГАИ — тонировка
+{ type: 'bonus', amount: $50–$200  }  // Заначка в бардачке
 ```
 
 ---
 
 ## 2. Экономика и Цены
 
-Все финансовые расчёты ведутся с использованием `Decimal.js`.
+Все расчёты через `Decimal.js`.
 
-### Покупка автомобиля — `calculateCurrentMarketValue(car, activeNews?)`
+### Покупка — `calculateCurrentMarketValue(car, activeNews?)`
 ```
-basePrice → applyNewsEffects → − (repairCost × 1.2) на каждый неисправленный дефект → min $100
+basePrice → applyNewsEffects → − (repairCost × 1.2) за каждый дефект → min $100
 ```
-Коэффициент 1.2× отражает покупательский риск (неизвестная стоимость ремонта).
 
-### Продажа автомобиля — `calculateSellPrice(car, activeNews?)`
+### Продажа — `calculateSellPrice(car, activeNews?)`
 ```
-basePrice → applyNewsEffects → − repairCost на каждый дефект → × PROFIT_MARGINS[tier] → min $100
+basePrice → applyNewsEffects → − repairCost → × PROFIT_MARGINS[tier] → min $100
 ```
-- **Маржа по тирам** (`PROFIT_MARGINS`): Bucket (1.10), Scrap (1.20), Business (1.15), Premium (1.15)
-- **Rarity**: особый детерминированный множитель `deterministicMultiplier(car.id, 2, 4)` — один и тот же для одной машины всегда
-- **Бонус Rarity**: +$5,000 если `health = 100` и ≤2 дефектов, все исправлены
-- **Блокировка**: если на машине активен дефект `legal_block` — функция возвращает `Decimal(0)`, продажа запрещена
+- `legal_block` на машине → возвращает `Decimal(0)`, продажа запрещена
+- **Rarity**: детерминированный `deterministicMultiplier(car.id, 2, 4)` + бонус `+$5,000` при `health=100`
 
 ### Налоги — `calculateOwnershipTax(garage)`
-Списываются при каждом броске кубика. Ставки (`OWNERSHIP_TAX_RATES`):
-`Bucket $20 / Scrap $50 / Business $100 / Premium $150 / Rarity $300`
+При каждом броске: `Bucket $20 / Scrap $50 / Business $100 / Premium $150 / Rarity $300`
 
-### Константы стоимостей (`constants.ts`)
+### Константы стоимостей
 | Константа | Значение | Описание |
 |---|---|---|
-| `DIAGNOSTICS_COST` | $200 | Диагностика (гараж или рынок) |
-| `MARKET_REFRESH_COST` | $500 | Обновление лота на клетке покупки |
-| `ENERGY_PURCHASE_COST` | $500 | Покупка 1 ед. энергии |
-| `SPECIAL_REPAIR_DISCOUNT` | 0.95 | Скидка на ремонт на клетке Sервис Пехота |
+| `DIAGNOSTICS_COST` | $200 | Диагностика |
+| `MARKET_REFRESH_COST` | $500 | Обновление лота |
+| `ENERGY_PURCHASE_COST` | $500 | Покупка энергии |
+| `SPECIAL_REPAIR_DISCOUNT` | 0.95 | Скидка на клетке Пехота |
+| `DIAGNOSTICS_UNLOCK_THRESHOLD` | $50,000 | Порог разблокировки диагностики |
 
 ---
 
-## 3. Генерация рынка — `generateMarketForCell(cellType)`
+## 3. Система прогрессии — `canUseDiagnostics(player)`
 
-При попадании на клетку покупки вызывается чистая функция из `shared`, которая генерирует лоты:
+Диагностика заблокирована до тех пор, пока суммарная выручка игрока (`totalEarned`) не достигнет `$50,000`.
+
+```typescript
+export function canUseDiagnostics(player: Player): boolean {
+  return new Decimal(player.totalEarned ?? '0').gte(DIAGNOSTICS_UNLOCK_THRESHOLD);
+}
+```
+
+- `totalEarned` — накопительный счётчик, увеличивается при каждой продаже авто, **никогда не уменьшается**.
+- Трекинг на сервере: `processSellCar` прибавляет `sellPrice` к `player.totalEarned`.
+- Трекинг на клиенте: `sellCar` обновляет `totalEarned` в соло-режиме.
+- **Сервер блокирует**: `socketHandlers.ts` проверяет `canUseDiagnostics(player)` перед обработкой `diagnoseCar`/`diagnoseMarketCar` — читеры не обойдут.
+- **UI**: кнопка диагностики показывает 🔒 с тултипом "Заработай $50,000" пока не разблокировано.
+
+---
+
+## 4. Генерация рынка — `generateMarketForCell(cellType)`
 
 | Тип клетки | Генерируемые авто |
 |---|---|
@@ -78,14 +85,14 @@ basePrice → applyNewsEffects → − repairCost на каждый дефект
 | `buy_retro` | 1 × Rarity |
 | `buy_random` | 3 случайных тира |
 
-Та же функция используется в `refreshMarket` — поведение при обновлении идентично первоначальному.
+Используется и при попадании на клетку (`executeCellAction`), и при обновлении рынка (`refreshMarket`).
 
 ---
 
-## 4. Механика Гонки
+## 5. Механика Гонки
 
-### Мультиплеер — `processRaceResolve()` на сервере
-Бросок D6 + бонус тира + бонус инициатора. Константа `TIER_RACE_BONUS` импортируется из `shared`:
+### Мультиплеер — `processRaceResolve()` (сервер)
+D6 + `TIER_RACE_BONUS` + бонус инициатора +1. Победитель забирает ставку (≤ 50% баланса инициатора).
 
 ```typescript
 export const TIER_RACE_BONUS: Record<CarTier, number> = {
@@ -93,47 +100,72 @@ export const TIER_RACE_BONUS: Record<CarTier, number> = {
 };
 ```
 
-- Инициатор заезда получает дополнительный бонус **+1** (home-field advantage).
-- Игрок с большим итоговым числом забирает ставку.
-- Ставка ограничена 50% баланса инициатора.
+После гонки: `room.marketStats.racesWon++`, `pushFeedEvent(room, 'race_win', …)`.
 
 ### Соло — `calculateSoloRaceWinChance(car)`
-Вероятностная модель против бота. Формула из `shared`:
+```typescript
+winChance = (car.health / 100) * SOLO_RACE_TIER_MULTIPLIERS[car.tier]
+// { Bucket: 0.5, Scrap: 0.7, Business: 1.0, Premium: 1.3, Rarity: 1.6 }
+```
+Победа → `+bet×2`, поражение → `-bet`.
+
+---
+
+## 6. Smart Event Director — `selectWeightedNews(stats)`
+
+Каждые **5 ходов** сервер (`passTurn()`) выбирает новость **с учётом активности рынка** — не случайно.
 
 ```typescript
-export const SOLO_RACE_TIER_MULTIPLIERS: Record<CarTier, number> = {
-  Bucket: 0.5, Scrap: 0.7, Business: 1.0, Premium: 1.3, Rarity: 1.6,
-};
-
-export function calculateSoloRaceWinChance(car: Car): number {
-  return (car.health / 100) * SOLO_RACE_TIER_MULTIPLIERS[car.tier];
-}
+export function selectWeightedNews(stats: MarketStats | null): GameNews
 ```
 
-При победе начисляется `bet × 2`, при поражении — списывается `bet`.
+**Весовые правила** (базовый вес каждого события = 100):
+
+| Событие | Условие | Бонус |
+|---|---|---|
+| `scrap_utilization` | Никто не купил Scrap | +400 |
+| `luxury_deficit` | Куплено ≥3 Premium | +300 |
+| `racing_fever` | ≥2 выигранных гонок | +300 |
+| `retro_hype` | Куплена хотя бы 1 Rarity | +250 |
+| `tax_luxury` | Куплено ≥3 Premium | +250 |
+| `taxi_boom` | Куплено ≥2 Business | +200 |
+| `gai_raid` | Куплено ≥4 Bucket | +200 |
+| `fuel_crisis` | Куплено ≥3 Bucket | +200 |
+| `repair_season` | ≥5 ремонтов | +150 |
+
+В соло-режиме клиент вызывает `selectWeightedNews(null)` → равновероятный выбор.
+
+**Полный список событий (14 штук):**
+Стандартные: `tax_luxury`, `fuel_crisis`, `retro_hype`, `taxi_boom`, `scrap_utilization`, `jdm_fest`, `ev_subsidies`, `export_ban`, `stable_economy`, `economic_growth`
+Контекстные: `luxury_deficit`, `gai_raid`, `repair_season`, `racing_fever`
 
 ---
 
-## 5. P2P Долги и Конфискация
+## 7. Глобальная лента событий — `EventFeedEntry[]`
 
-Игроки могут брать займы друг у друга под залог автомобиля.
+Сервер накапливает до **20 записей** в `room.eventFeed`. Записи добавляются через `pushFeedEvent()` при ключевых транзакциях:
 
-### Правила
-1. **Минимальный залог**: стоимость машины ≥ 80% от суммы займа.
-2. **Залог**: машина блокируется (`isLocked = true`) — нельзя продать или сдать.
-3. **Погашение**: заёмщик выплачивает `totalToPay = amount + interest` в течение `turnsLeft` ходов.
-4. **Конфискация**: при `turnsLeft = 0` сервер автоматически переводит машину кредитору.
+| Транзакция | Тип записи |
+|---|---|
+| `processBuyCar` | `buy` |
+| `processSellCar` | `sell` |
+| `processRaceResolve` (победитель) | `race_win` |
+| Конфискация залога в `passTurn` | `confiscate` |
 
----
-
-## 6. Новости и События
-
-Срабатывают каждые **5 ходов**. Хост (в мультиплеере) или клиент (в соло) выбирает случайную новость из `newsDatabase.ts` и рассылает через `sync_action → newsUpdate`. Влияют на `applyNewsEffects()` — цены при покупке и продаже.
+Клиент: компонент `EventFeed.tsx` — фиксированный оверлей справа вверху, показывает последние 5 записей с анимацией slide-in. Виден только в мультиплеере.
 
 ---
 
-## 7. Условие победы
+## 8. P2P Долги и Конфискация
 
-- **Цель**: Набрать заданную сумму капитала (по умолчанию $500,000).
-- **Проверка**: На сервере при каждой продаже — `newBalance >= room.winCondition`.
-- **Завершение**: Сервер устанавливает `winnerId` в `RoomState` → клиенты получают `room_updated` → `syncRoomState` фиксирует победителя.
+1. Залог ≥ 80% суммы займа.
+2. Машина блокируется (`isLocked = true`).
+3. При `turnsLeft = 0` — авто автоматически переходит кредитору + запись в `eventFeed` (тип `confiscate`).
+
+---
+
+## 9. Условие победы
+
+- **Цель**: `player.balance >= room.winCondition` (по умолчанию $500,000).
+- **Проверка**: `processSellCar` на сервере после каждой продажи.
+- **Завершение**: сервер ставит `winnerId`, клиенты получают `room_updated`.
