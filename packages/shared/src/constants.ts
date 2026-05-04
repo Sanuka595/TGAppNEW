@@ -12,3 +12,8 @@ export const MAX_ENERGY = 3;
 
 /** Repair cost discount multiplier on the Special Repair cell (5% off). */
 export const SPECIAL_REPAIR_DISCOUNT = '0.95';
+
+// ─── Progression unlock thresholds ───────────────────────────────────────────
+
+/** Cumulative earnings required to unlock the Diagnostics feature. */
+export const DIAGNOSTICS_UNLOCK_THRESHOLD = '50000';

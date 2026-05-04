@@ -4,6 +4,8 @@ import {
   ServerToClientEvents,
   SyncActionPayload,
   PlayerSchema,
+  canUseDiagnostics,
+  DIAGNOSTICS_UNLOCK_THRESHOLD,
 } from '@tgperekup/shared';
 import * as rm from './roomManager.js';
 
@@ -109,6 +111,16 @@ export const registerSocketHandlers = (
         socket.emit('room_error', 'Только хост может публиковать рыночные события'); return;
       }
       rm.updateActiveEvent(data.roomId, data.payload);
+
+    // ── Progression-gated actions ────────────────────────────────────────
+    } else if (data.action === 'diagnoseCar' || data.action === 'diagnoseMarketCar') {
+      const room = rm.getRoom(data.roomId);
+      const player = room?.players.find(p => p.id === data.playerId);
+      if (!player || !canUseDiagnostics(player)) {
+        socket.emit('room_error', `Диагностика заблокирована 🔒 — нужно заработать $${DIAGNOSTICS_UNLOCK_THRESHOLD}`);
+        return;
+      }
+      // Validation passed — fall through to relay below.
 
     // ── Debt actions ──────────────────────────────────────────────────────
     } else if (data.action === 'loanOffer') {

@@ -307,9 +307,11 @@ export const processSellCar = (roomId: string, playerId: string, carId: string):
   if (sellPrice.isZero()) return { success: false, error: 'sale_blocked_legal' };
 
   const newBalance = new Decimal(player.balance).add(sellPrice);
+  const newTotalEarned = new Decimal(player.totalEarned ?? '0').add(sellPrice).toFixed(0);
   room.players[playerIndex] = {
     ...player,
     balance: newBalance.toFixed(0),
+    totalEarned: newTotalEarned,
     garage: garage.filter(c => c.id !== carId),
   };
 

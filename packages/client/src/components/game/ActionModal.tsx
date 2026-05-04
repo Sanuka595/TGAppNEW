@@ -6,6 +6,7 @@ import { Button } from '../ui/Button.js';
 import { triggerHaptic } from '../../lib/tmaProvider';
 import { Decimal } from 'decimal.js';
 import { useUiStore } from '../../store/uiStore';
+import { canUseDiagnostics, DIAGNOSTICS_UNLOCK_THRESHOLD } from '@tgperekup/shared';
 
 export const ActionModal: React.FC = () => {
   const {
@@ -97,13 +98,23 @@ export const ActionModal: React.FC = () => {
                 <div key={car.id} className="bg-white/5 rounded-2xl p-4 border border-white/10">
                   <div className="flex justify-between items-center mb-3">
                     <span className="font-bold text-white">{car.name}</span>
-                    <Button
-                      variant="secondary"
-                      className="h-7 text-[10px] px-3"
-                      onClick={() => { triggerHaptic('impact', 'light'); diagnoseCar(car.id); }}
-                    >
-                      Диагностика ($200)
-                    </Button>
+                    {canUseDiagnostics(player) ? (
+                      <Button
+                        variant="secondary"
+                        className="h-7 text-[10px] px-3"
+                        onClick={() => { triggerHaptic('impact', 'light'); diagnoseCar(car.id); }}
+                      >
+                        Диагностика ($200)
+                      </Button>
+                    ) : (
+                      <button
+                        title={`Разблокировать: заработай $${DIAGNOSTICS_UNLOCK_THRESHOLD}`}
+                        className="h-7 text-[10px] px-3 rounded-xl bg-white/5 text-white/30 cursor-not-allowed flex items-center gap-1 border border-white/10"
+                        disabled
+                      >
+                        🔒 Диагностика
+                      </button>
+                    )}
                   </div>
                   <div className="space-y-2">
                     {car.defects.filter(d => !d.isRepaired).map(defect => (

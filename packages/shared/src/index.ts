@@ -32,6 +32,7 @@ export {
   calculateSellPrice,
   calculateRentIncome,
   calculateSoloRaceWinChance,
+  canUseDiagnostics,
   generateRepairCost,
   generateMarketForCell,
   resolveRandomEncounter,

@@ -8,6 +8,7 @@ import {
   calculateCarHealth,
   calculateRentIncome,
   calculateSoloRaceWinChance,
+  canUseDiagnostics,
   generateMarketForCell,
   resolveRandomEncounter,
   selectWeightedNews,
@@ -146,8 +147,14 @@ export const createPlayerSlice: StateCreator<GameStore, [['zustand/persist', unk
     }
 
     const newBalance = new Decimal(player.balance).add(sellPrice).toFixed(0);
+    const newTotalEarned = new Decimal(player.totalEarned ?? '0').add(sellPrice).toFixed(0);
     set((state) => ({
-      player: { ...state.player, balance: newBalance, garage: (state.player.garage ?? []).filter((c) => c.id !== carId) },
+      player: {
+        ...state.player,
+        balance: newBalance,
+        totalEarned: newTotalEarned,
+        garage: (state.player.garage ?? []).filter((c) => c.id !== carId),
+      },
       garage: state.garage.filter((c) => c.id !== carId),
     }));
     get().addLog(`Лох найден! Продали ${car.name} за $${sellPrice.toFixed(0)}. Деньги не пахнут!`, 'success');
@@ -186,6 +193,10 @@ export const createPlayerSlice: StateCreator<GameStore, [['zustand/persist', unk
 
   diagnoseCar: (carId) => {
     const { player, roomId } = get();
+    if (!canUseDiagnostics(player)) {
+      get().addLog('Диагностика заблокирована 🔒 — нужно заработать $50,000', 'error');
+      return;
+    }
     const garage = player.garage ?? [];
     const car = garage.find((c) => c.id === carId);
     if (!car) return;
@@ -207,6 +218,10 @@ export const createPlayerSlice: StateCreator<GameStore, [['zustand/persist', unk
 
   diagnoseMarketCar: (carId) => {
     const { player, market, roomId } = get();
+    if (!canUseDiagnostics(player)) {
+      get().addLog('Диагностика заблокирована 🔒 — нужно заработать $50,000', 'error');
+      return;
+    }
     const car = market.find((c) => c.id === carId);
     if (!car) return;
 

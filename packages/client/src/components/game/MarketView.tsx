@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { ShoppingBag, Search, ShieldAlert, Tag, TrendingUp, Car as CarIcon, ShieldCheck, Banknote, LogOut } from 'lucide-react';
 import { useGameStore } from '../../store/gameStore';
-import { type CarTier, calculateSellPrice, calculateCurrentMarketValue } from '@tgperekup/shared';
+import { type CarTier, calculateSellPrice, calculateCurrentMarketValue, canUseDiagnostics, DIAGNOSTICS_UNLOCK_THRESHOLD } from '@tgperekup/shared';
 import { Button } from '../ui/Button.js';
 import { triggerHaptic } from '../../lib/tmaProvider';
 
@@ -173,9 +173,19 @@ export const MarketView: React.FC = () => {
 
                     <div className="flex gap-3 mt-2">
                       {car.defects.some(d => d.isHidden) && (
-                        <Button className="flex-1" variant="secondary" onClick={() => { triggerHaptic('impact', 'light'); diagnoseMarketCar(car.id); }}>
-                          Диагностика ($200)
-                        </Button>
+                        canUseDiagnostics(player) ? (
+                          <Button className="flex-1" variant="secondary" onClick={() => { triggerHaptic('impact', 'light'); diagnoseMarketCar(car.id); }}>
+                            Диагностика ($200)
+                          </Button>
+                        ) : (
+                          <button
+                            title={`Разблокировать: заработай $${DIAGNOSTICS_UNLOCK_THRESHOLD}`}
+                            className="flex-1 text-[11px] rounded-xl bg-white/5 text-white/30 cursor-not-allowed border border-white/10 py-2"
+                            disabled
+                          >
+                            🔒 Диагностика
+                          </button>
+                        )
                       )}
                       <Button className="flex-[2]" variant="primary" onClick={() => { triggerHaptic('notification', 'success'); buyCar(car.id); }}>
                         Выкупить лот

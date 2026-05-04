@@ -2,6 +2,8 @@ import { Decimal } from 'decimal.js';
 import type { Car, CarTier, CellType, DefectInstance, GameNews, SeverityLevel } from './types.js';
 import { HEALTH_PENALTIES } from './types.js';
 import type { MarketStats } from './dtos/room.js';
+import type { Player } from './dtos/player.js';
+import { DIAGNOSTICS_UNLOCK_THRESHOLD } from './constants.js';
 
 // ─── Constants ────────────────────────────────────────────────────────────────
 
@@ -227,6 +229,16 @@ export function generateMarketForCell(cellType: CellType): Car[] {
     default:
       return [];
   }
+}
+
+// ─── Progression unlocks ─────────────────────────────────────────────────────
+
+/**
+ * Returns true when the player has earned enough to use Diagnostics.
+ * Based on totalEarned (cumulative, never decreases) — not current balance.
+ */
+export function canUseDiagnostics(player: Player): boolean {
+  return new Decimal(player.totalEarned ?? '0').gte(DIAGNOSTICS_UNLOCK_THRESHOLD);
 }
 
 // ─── Smart Event Director ─────────────────────────────────────────────────────
