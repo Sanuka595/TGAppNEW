@@ -1,8 +1,8 @@
 import React, { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { ShoppingBag, Search, ShieldAlert, Tag, TrendingUp, Car as CarIcon, ShieldCheck, Banknote, LogOut } from 'lucide-react';
+import { Search, ShieldAlert, Tag, TrendingUp, Car as CarIcon, ShieldCheck, Banknote, LogOut } from 'lucide-react';
 import { useGameStore } from '../../store/gameStore';
-import { type CarTier, calculateSellPrice, calculateCurrentMarketValue, canUseDiagnostics, DIAGNOSTICS_UNLOCK_THRESHOLD } from '@tgperekup/shared';
+import { type CarTier, calculateSellPrice, calculateCurrentMarketValue, canUseDiagnostics, DIAGNOSTICS_UNLOCK_THRESHOLD } from '@tgperekup/shared'; // calculateSellPrice kept for sell-mode P&L
 import { Button } from '../ui/Button.js';
 import { triggerHaptic } from '../../lib/tmaProvider';
 
@@ -108,10 +108,9 @@ export const MarketView: React.FC = () => {
             ) : (
               market.map((car, index) => {
                 const buyPrice = calculateCurrentMarketValue(car, activeEvent);
-                const maxSellPrice = calculateSellPrice({ ...car, defects: [], health: 100 }, activeEvent);
-                const potentialProfit = maxSellPrice.sub(buyPrice);
-                const profitMargin = buyPrice.gt(0) ? potentialProfit.div(buyPrice).mul(100).toNumber() : 0;
-                
+                const diagUnlocked = canUseDiagnostics(player);
+                const hasHidden = car.defects.some(d => d.isHidden);
+
                 return (
                   <motion.div 
                     key={car.id}
@@ -156,38 +155,26 @@ export const MarketView: React.FC = () => {
                       </div>
                     </div>
 
-                    <div className="mb-6 p-4 rounded-2xl bg-gradient-to-r from-blue-500/10 to-transparent border-l-2 border-blue-400/50 backdrop-blur-sm relative z-10 flex flex-col justify-center">
-                      <div className="flex justify-between items-center mb-1">
-                        <div className="flex items-center space-x-1">
-                          <TrendingUp size={12} className="text-blue-400" />
-                          <span className="text-[10px] uppercase font-black tracking-widest text-blue-300">Оценка сделки</span>
-                        </div>
-                        <span className={`text-[10px] uppercase font-black tracking-widest ${profitMargin > 30 ? 'text-green-400 drop-shadow-[0_0_5px_rgba(74,222,128,0.5)]' : 'text-yellow-400'}`}>
-                          Потенциал: +{profitMargin.toFixed(0)}%
-                        </span>
-                      </div>
-                      <p className="text-[11px] text-white/60 leading-relaxed font-medium mt-1">
-                        Идеальное состояние позволит продать авто за <span className="text-white font-bold">${maxSellPrice.toFixed(0)}</span>. Ожидаемая маржинальность сделки: ${potentialProfit.toFixed(0)}.
-                      </p>
-                    </div>
-
                     <div className="flex gap-3 mt-2">
-                      {car.defects.some(d => d.isHidden) && (
-                        canUseDiagnostics(player) ? (
-                          <Button className="flex-1" variant="secondary" onClick={() => { triggerHaptic('impact', 'light'); diagnoseMarketCar(car.id); }}>
-                            Диагностика ($200)
-                          </Button>
-                        ) : (
-                          <button
-                            title={`Разблокировать: заработай $${DIAGNOSTICS_UNLOCK_THRESHOLD}`}
-                            className="flex-1 text-[11px] rounded-xl bg-white/5 text-white/30 cursor-not-allowed border border-white/10 py-2"
-                            disabled
-                          >
-                            🔒 Диагностика
-                          </button>
-                        )
-                      )}
-                      <Button className="flex-[2]" variant="primary" onClick={() => { triggerHaptic('notification', 'success'); buyCar(car.id); }}>
+                      {/* Diagnostics: always show lock when not unlocked; show active only when unlocked + hidden defects */}
+                      {!diagUnlocked ? (
+                        <button
+                          title={`Разблокировать: заработай $${DIAGNOSTICS_UNLOCK_THRESHOLD}`}
+                          className="flex-1 text-[11px] rounded-xl bg-white/5 text-white/30 cursor-not-allowed border border-white/10 py-2"
+                          disabled
+                        >
+                          🔒 Диагностика
+                        </button>
+                      ) : hasHidden ? (
+                        <Button className="flex-1" variant="secondary" onClick={() => { triggerHaptic('impact', 'light'); diagnoseMarketCar(car.id); }}>
+                          Диагностика ($200)
+                        </Button>
+                      ) : null}
+                      <Button
+                        className={!diagUnlocked || hasHidden ? 'flex-[2]' : 'flex-1'}
+                        variant="primary"
+                        onClick={() => { triggerHaptic('notification', 'success'); buyCar(car.id); }}
+                      >
                         Выкупить лот
                       </Button>
                     </div>
